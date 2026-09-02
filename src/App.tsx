@@ -436,7 +436,7 @@ function App() {
       )}
 
       <div className={`fixed inset-0 z-50 md:hidden ${menuOpen ? "pointer-events-auto" : "pointer-events-none"}`} aria-hidden={!menuOpen} data-ripple-block>
-        <div className={`absolute inset-0 bg-[#101516]/75 backdrop-blur-xl transition-opacity duration-500 ${menuOpen ? "opacity-100" : "opacity-0"}`} />
+        <div className={`absolute inset-0 bg-[#101516]/45 backdrop-blur-lg transition-opacity duration-500 ${menuOpen ? "opacity-100" : "opacity-0"}`} />
         <div className={`absolute inset-0 flex flex-col items-center justify-center gap-6 transition-opacity duration-500 ${menuOpen ? "opacity-100" : "opacity-0"}`} style={uiFont}>
           <button className="mb-4 text-sm uppercase tracking-[0.25em] text-white/45" type="button" onClick={() => navigate("home")}>Lumora Cipher</button>
           {navigation.map((item, index) => { const Icon = item.icon; return <button key={item.view} type="button" onClick={() => navigate(item.view)} className={`flex items-center gap-3 text-3xl text-white transition-all duration-500 ${menuOpen ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`} style={{ transitionDelay: menuOpen ? `${100 + index * 50}ms` : "0ms" }}><Icon className="h-5 w-5 opacity-50" />{item.label}</button>; })}

@@ -466,6 +466,268 @@ button:disabled {
   width: 19px;
 }
 
+.dh-mode-switch {
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.dh-mode-switch::-webkit-scrollbar {
+  display: none;
+}
+
+.dh-mode-switch button {
+  min-width: 104px;
+  white-space: nowrap;
+}
+
+.dh-actor-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.92fr) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.dh-party-card {
+  min-width: 0;
+  transition: border-color 260ms ease, background 260ms ease, box-shadow 260ms ease, transform 260ms ease;
+}
+
+.dh-eve-card {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(240, 171, 112, 0.075), transparent 35%),
+    rgba(255, 255, 255, 0.035);
+}
+
+.dh-eve-card.is-intercepting {
+  border-color: rgba(255, 184, 126, 0.24);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(240, 139, 91, 0.13), transparent 42%),
+    rgba(74, 32, 20, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 225, 196, 0.08), 0 0 34px rgba(239, 119, 70, 0.055);
+  transform: translateY(-2px);
+}
+
+.dh-eve-card.is-blocked {
+  border-color: rgba(255, 130, 130, 0.26);
+  background: linear-gradient(145deg, rgba(117, 37, 37, 0.16), rgba(255, 255, 255, 0.025));
+  transform: none;
+}
+
+.connection-orb.is-danger {
+  background: #ff9f83;
+  box-shadow: 0 0 0 5px rgba(255, 132, 98, 0.08), 0 0 18px rgba(255, 124, 88, 0.48);
+  animation: signal-pulse 1.6s ease-out infinite;
+}
+
+.dh-flow-line {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 10px 16px;
+  color: rgba(255, 255, 255, 0.4);
+  background: rgba(0, 0, 0, 0.1);
+  font-size: 11px;
+}
+
+.dh-flow-line svg {
+  width: 15px;
+  color: rgba(255, 173, 139, 0.55);
+}
+
+.dh-flow-line strong {
+  color: rgba(255, 206, 180, 0.76);
+  font-weight: 600;
+}
+
+.dh-signature-panel {
+  border: 1px solid rgba(172, 231, 209, 0.13);
+  background: linear-gradient(110deg, rgba(117, 204, 171, 0.06), rgba(255, 255, 255, 0.025));
+  transition: border-color 260ms ease, background 260ms ease;
+}
+
+.dh-signature-panel.is-blocked {
+  border-color: rgba(255, 138, 138, 0.2);
+  background: linear-gradient(110deg, rgba(151, 47, 47, 0.13), rgba(255, 255, 255, 0.025));
+}
+
+.dh-verdict-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(180, 238, 216, 0.16);
+  border-radius: 999px;
+  padding: 8px 11px;
+  color: rgba(207, 250, 233, 0.7);
+  background: rgba(107, 199, 165, 0.07);
+  font-family: ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.dh-verdict-chip.is-danger {
+  border-color: rgba(255, 143, 143, 0.2);
+  color: rgba(255, 211, 211, 0.86);
+  background: rgba(202, 65, 65, 0.11);
+}
+
+.dh-fingerprint-grid,
+.dh-message-editor,
+.dh-trace-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.dh-demo-console {
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.012) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.012) 1px, transparent 1px),
+    rgba(255, 255, 255, 0.03);
+  background-size: 28px 28px;
+}
+
+.dh-message-editor textarea {
+  min-height: 68px;
+  resize: vertical;
+  line-height: 1.55;
+}
+
+.dh-event-log,
+.dh-message-trace {
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.11);
+}
+
+.dh-event-log ol {
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.dh-event-log li {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+  color: rgba(255, 255, 255, 0.54);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.dh-event-log li > span {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border: 1px solid rgba(255, 188, 149, 0.17);
+  border-radius: 50%;
+  color: rgba(255, 209, 181, 0.65);
+  background: rgba(255, 151, 98, 0.06);
+  font-family: ui-monospace, monospace;
+  font-size: 8px;
+}
+
+.dh-event-log li.is-empty {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.dh-message-trace {
+  display: grid;
+  gap: 8px;
+}
+
+.dh-message-trace > div {
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  border-radius: 14px;
+  padding: 10px 11px;
+  background: rgba(255, 255, 255, 0.025);
+  transition: border-color 220ms ease, background 220ms ease;
+}
+
+.dh-message-trace > div > span,
+.dh-message-trace > div > code {
+  display: block;
+}
+
+.dh-message-trace > div > span {
+  color: rgba(255, 255, 255, 0.32);
+  font-size: 8px;
+  letter-spacing: 0.11em;
+}
+
+.dh-message-trace > div > code {
+  overflow-wrap: anywhere;
+  margin-top: 6px;
+  color: rgba(255, 255, 255, 0.52);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.dh-message-trace > div.is-exposed {
+  border-color: rgba(255, 166, 126, 0.18);
+  background: rgba(218, 101, 60, 0.075);
+}
+
+.dh-message-trace > div.is-exposed > code {
+  color: rgba(255, 224, 207, 0.84);
+}
+
+.dh-message-trace > div.is-blocked {
+  border-color: rgba(255, 137, 137, 0.18);
+  background: rgba(197, 62, 62, 0.08);
+}
+
+.dh-message-trace > div.is-blocked > code {
+  color: rgba(255, 211, 211, 0.84);
+}
+
+.dh-result-card.is-attacked {
+  border-color: rgba(255, 139, 110, 0.21);
+  background: linear-gradient(110deg, rgba(190, 73, 42, 0.13), rgba(255, 255, 255, 0.03));
+}
+
+@media (max-width: 1120px) {
+  .dh-actor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dh-eve-card.is-intercepting {
+    transform: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .dh-mode-switch {
+    width: 100%;
+  }
+
+  .dh-mode-switch button {
+    min-width: max-content;
+    flex: 1 0 auto;
+    padding-inline: 13px;
+  }
+
+  .dh-fingerprint-grid,
+  .dh-message-editor,
+  .dh-trace-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dh-flow-line {
+    flex-wrap: wrap;
+  }
+}
+
 .role-picker button {
   display: flex;
   flex-direction: column;

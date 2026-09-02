@@ -29,5 +29,16 @@ const [left, right] = await Promise.all([
 ]);
 checks.dh = left === right && left.length === 64;
 
+const demo = await import(`../src/crypto/dhDemo.ts?v=${Date.now()}`);
+const eve = engine.createDhParty();
+const mitm = await demo.deriveMitmSecrets(alice, bob, eve);
+checks.dhMitm = mitm.aliceSecret === mitm.eveAliceSecret
+  && mitm.bobSecret === mitm.eveBobSecret
+  && mitm.aliceSecret !== mitm.bobSecret;
+const relay = await demo.relayMitmMessage("转账100元", "转账900元", mitm);
+checks.dhMitmMessage = relay.eveRead === "转账100元" && relay.bobRead === "转账900元";
+const defense = await demo.simulateSignatureDefense(alice, bob, eve);
+checks.dhSignatureDefense = defense.genuineValid === true && defense.attackedValid === false;
+
 console.log(JSON.stringify(checks, null, 2));
 if (Object.values(checks).some((value) => value !== true)) process.exitCode = 1;

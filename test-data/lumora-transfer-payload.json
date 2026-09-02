@@ -1,0 +1,22 @@
+{
+  "suite": "Lumora Cipher 双机文件传输测试",
+  "room": "LUMORA-TEST-2026",
+  "generatedAt": "2026-08-21T15:00:00+08:00",
+  "records": [
+    {
+      "id": 1,
+      "message": "Hello, Lumora!",
+      "valid": true
+    },
+    {
+      "id": 2,
+      "message": "中文、换行与 Emoji：🔐🌊🐋",
+      "valid": true
+    },
+    {
+      "id": 3,
+      "message": "Integrity check / MD5 verified",
+      "valid": true
+    }
+  ]
+}

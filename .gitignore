@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.env
+.env.*
+*.log
+.DS_Store
+data/
+release/
+.cache/
+.vite/
+coverage/
+playwright-report/
+test-results/
+.edge-qa-*/
+.codex/
+*.tmp
+*.bak

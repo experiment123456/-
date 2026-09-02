@@ -1,0 +1,39 @@
+{
+  "name": "lumora-cipher-lab",
+  "version": "1.1.1",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc --noEmit -p tsconfig.app.json && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "start": "node server.mjs",
+    "test:crypto": "node scripts/crypto-qa.mjs",
+    "test:unicode": "node scripts/unicode-qa.mjs",
+    "test:relay": "node scripts/relay-qa.mjs",
+    "test:network": "node scripts/network-qa.mjs",
+    "test:media": "node scripts/media-qa.mjs",
+    "test:share": "node scripts/share-qa.mjs",
+    "pack:share": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/package-share.ps1"
+  },
+  "dependencies": {
+    "lucide-react": "^1.31.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "ws": "^8.21.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@types/ws": "^8.18.1",
+    "@vitejs/plugin-react": "^6.0.5",
+    "playwright-core": "^1.62.1",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.1"
+  }
+}

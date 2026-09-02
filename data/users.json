@@ -1,0 +1,38 @@
+{
+  "users": [
+    {
+      "id": "1a904672-6d28-4091-8e38-c57fff6922de",
+      "username": "wjl",
+      "displayName": "琳",
+      "salt": "312883b2b6611ca3fd0e3a154f3acfe3",
+      "passwordHash": "ef2c13438522cafc7afe2826440e99fa35597e5e3a8e07e6900214299feb019dd942bdc8d4832406e18f33446554b164869e855b74818c59a924769d66fc215d",
+      "createdAt": "2026-08-31T13:10:15.331Z",
+      "lastLoginAt": "2026-09-02T05:32:53.521Z",
+      "settings": {
+        "backgroundAutoplay": true,
+        "ripplesEnabled": true,
+        "reducedMotion": false
+      },
+      "activity": [
+        {
+          "id": "1d9dad42-c45d-41c9-bc36-024c4ab91e9a",
+          "label": "账户登录",
+          "detail": "新的浏览器会话已建立",
+          "at": "2026-09-02T05:32:53.522Z"
+        },
+        {
+          "id": "ff931515-bec6-426b-b31c-8f02cb0a5866",
+          "label": "账户登录",
+          "detail": "新的浏览器会话已建立",
+          "at": "2026-08-31T13:26:14.050Z"
+        },
+        {
+          "id": "ed6e4081-2d36-41cc-adad-1cc4b2793e1a",
+          "label": "账户创建",
+          "detail": "已启用安全实验档案与界面偏好同步",
+          "at": "2026-08-31T13:10:15.332Z"
+        }
+      ]
+    }
+  ]
+}

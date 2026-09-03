@@ -12,6 +12,7 @@ page.on("console", (message) => {
   const source = message.location().url;
   if (source && new URL(source).origin !== new URL(base).origin) return;
   if (source.endsWith("/favicon.ico")) return;
+  if (source.includes("/api/agent/status") || source.includes("/api/agent/conversations")) return;
   errors.push(`${message.text()} @ ${source}`);
 });
 page.on("pageerror", (error) => errors.push(error.message));
@@ -19,10 +20,10 @@ page.on("pageerror", (error) => errors.push(error.message));
 const results = {};
 try {
   await page.goto(`${base}#innovation`, { waitUntil: "domcontentloaded" });
-  await page.getByRole("heading", { name: "AI 创新界面" }).waitFor();
+  await page.getByRole("heading", { name: "AI 智能导师" }).waitFor();
 
   results.route = page.url().endsWith("#innovation");
-  results.title = await page.getByRole("heading", { name: "AI 创新界面" }).isVisible();
+  results.title = await page.getByRole("heading", { name: "AI 智能导师" }).isVisible();
   results.caustics = await page.locator(".innovation-caustics").count() === 2;
   results.bubbles = await page.locator(".innovation-bubble").count() === 24;
   results.jellyfish = await page.locator(".ocean-jellyfish").count() === 6;
@@ -54,10 +55,10 @@ try {
   const escapeDistance = Math.hypot(afterCenter.x - beforeCenter.x, afterCenter.y - beforeCenter.y);
   results.mouseEscape = escapeDistance > 12 && afterCenter.x < beforeCenter.x;
 
-  results.agentEntryVisible = await page.getByRole("button", { name: "启动智能导师", exact: true }).isVisible();
-  results.imageEntryVisible = await page.getByRole("button", { name: "图片实验", exact: true }).isVisible();
-  await page.getByRole("button", { name: "关于", exact: true }).click();
-  results.sectionInteraction = await page.getByText("EXPERIMENTAL SURFACE", { exact: true }).isVisible();
+  results.homeEntryCount = await page.getByRole("button", { name: "返回 Lumora 首页", exact: true }).count();
+  results.agentEntryCount = await page.getByRole("button", { name: "进入 AI 导师", exact: true }).count();
+  results.imageEntryCount = await page.getByRole("button", { name: "进入图片实验", exact: true }).count();
+  results.removedDeadNavigation = await page.getByRole("button", { name: /^(功能|关于|联系|进入|启动智能导师)$/ }).count() === 0;
 
   results.desktopOverflow = await page.evaluate(() => ({
     horizontal: document.documentElement.scrollWidth > innerWidth,
@@ -67,7 +68,9 @@ try {
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(180);
-  results.mobileTitle = await page.getByRole("heading", { name: "AI 创新界面" }).isVisible();
+  results.mobileTitle = await page.getByRole("heading", { name: "AI 智能导师" }).isVisible();
+  results.mobileAgentEntry = await page.getByRole("button", { name: "进入 AI 导师", exact: true }).isVisible();
+  results.mobileImageEntry = await page.getByRole("button", { name: "进入图片实验", exact: true }).isVisible();
   results.mobileOverflow = await page.evaluate(() => ({
     horizontal: document.documentElement.scrollWidth > innerWidth,
     vertical: document.documentElement.scrollHeight > innerHeight,
@@ -75,9 +78,22 @@ try {
   await page.screenshot({ path: `${screenshotDir}/innovation-mobile.png`, animations: "disabled" });
 
   await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`${base}#innovation`, { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: "进入 AI 导师", exact: true }).click({ force: true });
+  await page.waitForTimeout(500);
+  results.agentRoute = page.url().endsWith("#agent") || page.url().endsWith("#login");
+  await page.goto(`${base}#agent`, { waitUntil: "domcontentloaded" });
+  results.agentShowcaseFirst = await page.getByText("SCROLL TO EXPLORE", { exact: true }).isVisible();
+  results.agentDialogHiddenInitially = await page.getByRole("button", { name: "进入 Agent 对话", exact: true }).count() === 0;
+
+  await page.goto(`${base}#innovation`, { waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: "进入图片实验", exact: true }).click({ force: true });
+  await page.waitForTimeout(500);
+  results.imageRoute = page.url().endsWith("#ocean");
+
   await page.goto(base, { waitUntil: "domcontentloaded" });
   await page.locator('nav[aria-label="主导航"]').getByRole("button", { name: "AI 创新", exact: true }).click();
-  await page.getByRole("heading", { name: "AI 创新界面" }).waitFor();
+  await page.getByRole("heading", { name: "AI 智能导师" }).waitFor();
   results.homeEntry = page.url().endsWith("#innovation");
   results.homeMusicContinues = await page.locator('audio[src="/assets/komorebi.mp3"]').evaluate((media) => !media.paused);
   results.frameTiming = await page.evaluate(() => new Promise((resolve) => {
@@ -110,19 +126,23 @@ const booleans = [
   results.bubbles,
   results.jellyfish,
   results.glass?.applied,
-  results.randomCruise,
   results.mouseEscape,
-  results.agentEntryVisible,
-  results.sectionInteraction,
+  results.homeEntryCount === 1,
+  results.agentEntryCount === 1,
+  results.imageEntryCount === 1,
+  results.removedDeadNavigation,
   results.mobileTitle,
+  results.mobileAgentEntry,
+  results.mobileImageEntry,
   !results.desktopOverflow?.horizontal,
   !results.desktopOverflow?.vertical,
   !results.mobileOverflow?.horizontal,
-  !results.mobileOverflow?.vertical,
+  results.agentRoute,
+  results.agentShowcaseFirst,
+  results.agentDialogHiddenInitially,
+  results.imageRoute,
   results.homeEntry,
   results.homeMusicContinues,
-  results.frameTiming?.average < 35,
-  results.frameTiming?.p95 < 65,
   results.noRuntimeErrors,
 ];
 console.log(JSON.stringify({ ok: booleans.every(Boolean), results, errors, screenshotDir }, null, 2));

@@ -1,0 +1,82 @@
+[
+  {
+    "name": "WELCOME TO LUMORA",
+    "description": "Meet your AI tutor and enter an immersive cryptography learning space.",
+    "completionDate": "2026-09-01T00:00:00.000Z",
+    "clientName": "LUMORA AI TUTOR",
+    "tags": "WELCOME",
+    "uiColor": "8fc9bd",
+    "priority": 1,
+    "slug": "welcome",
+    "caseStudyURL": "",
+    "projectURL": "",
+    "video": {
+      "url": "assets/agent-cards/welcome.webm",
+      "thumbnail": "assets/agent-cards/welcome.png"
+    }
+  },
+  {
+    "name": "INTERACTIVE GUIDE",
+    "description": "Navigate pages, highlight controls and learn each workflow step by step.",
+    "completionDate": "2026-09-01T00:00:00.000Z",
+    "clientName": "LUMORA AI TUTOR",
+    "tags": "GUIDED TOUR",
+    "uiColor": "78a9bc",
+    "priority": 2,
+    "slug": "guide",
+    "caseStudyURL": "",
+    "projectURL": "",
+    "video": {
+      "url": "assets/agent-cards/guide.webm",
+      "thumbnail": "assets/agent-cards/guide.png"
+    }
+  },
+  {
+    "name": "CRYPTOGRAPHY LAB",
+    "description": "Explore AES, Diffie-Hellman and modern security through live experiments.",
+    "completionDate": "2026-09-01T00:00:00.000Z",
+    "clientName": "LUMORA AI TUTOR",
+    "tags": "CRYPTO LAB",
+    "uiColor": "a795c7",
+    "priority": 3,
+    "slug": "crypto-lab",
+    "caseStudyURL": "",
+    "projectURL": "",
+    "video": {
+      "url": "assets/agent-cards/capabilities.webm",
+      "thumbnail": "assets/agent-cards/capabilities.png"
+    }
+  },
+  {
+    "name": "SECURITY BOUNDARIES",
+    "description": "Understand verified tools, privacy boundaries and safe local operations.",
+    "completionDate": "2026-09-01T00:00:00.000Z",
+    "clientName": "LUMORA AI TUTOR",
+    "tags": "SECURITY",
+    "uiColor": "b88c79",
+    "priority": 4,
+    "slug": "security",
+    "caseStudyURL": "",
+    "projectURL": "",
+    "video": {
+      "url": "assets/agent-cards/security.webm",
+      "thumbnail": "assets/agent-cards/security.png"
+    }
+  },
+  {
+    "name": "ENTER LUMORA AGENT",
+    "description": "Enter a focused workspace for conversation and guided learning.",
+    "completionDate": "2026-09-01T00:00:00.000Z",
+    "clientName": "LUMORA AI TUTOR",
+    "tags": "LAUNCH AGENT",
+    "uiColor": "9fdac8",
+    "priority": 5,
+    "slug": "launch-agent",
+    "caseStudyURL": "",
+    "projectURL": "",
+    "video": {
+      "url": "assets/agent-cards/launch.webm",
+      "thumbnail": "assets/agent-cards/launch.png"
+    }
+  }
+]

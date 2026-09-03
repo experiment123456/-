@@ -108,7 +108,7 @@ export default function WorkbenchView() {
 
   return (
     <div className="app-panel panel-reveal grid h-full min-h-0 grid-cols-1 overflow-hidden rounded-[30px] lg:grid-cols-[230px_minmax(0,1fr)]">
-      <aside className="panel-sidebar hidden min-h-0 border-r border-white/10 p-4 lg:flex lg:flex-col">
+      <aside className="panel-sidebar hidden min-h-0 border-r border-white/10 p-4 lg:flex lg:flex-col" data-agent-id="workbench.algorithms">
         <div className="px-2 pb-4 pt-1">
           <p className="eyebrow">LOCAL LAB / 01</p>
           <h2 className="mt-2 text-2xl">单机密码实验台</h2>
@@ -117,6 +117,7 @@ export default function WorkbenchView() {
           {algorithms.map((item, index) => (
             <button
               key={item.id}
+              data-agent-id={`workbench.algorithm.${item.id}`}
               type="button"
               onClick={() => setAlgorithm(item.id)}
               className={`algorithm-tab w-full rounded-2xl px-3 py-3 text-left ${algorithm === item.id ? "is-active" : ""}`}
@@ -164,6 +165,7 @@ export default function WorkbenchView() {
                 <span>INPUT / 输入</span><span>{Array.from(input).length} chars</span>
               </span>
               <textarea
+                data-agent-id="workbench.input"
                 className="soft-scroll min-h-[170px] flex-1 resize-none bg-transparent font-mono text-sm leading-7 text-white/90 outline-none placeholder:text-white/25"
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
@@ -180,6 +182,7 @@ export default function WorkbenchView() {
                 </span>
               </span>
               <textarea
+                data-agent-id="workbench.output"
                 className="soft-scroll min-h-[170px] flex-1 resize-none bg-transparent font-mono text-sm leading-7 text-emerald-50/90 outline-none placeholder:text-white/20"
                 value={output}
                 onChange={(event) => setOutput(event.target.value)}
@@ -190,12 +193,12 @@ export default function WorkbenchView() {
           </div>
 
           <div className="space-y-4">
-            <div className="workspace-card rounded-3xl p-4">
+            <div className="workspace-card rounded-3xl p-4" data-agent-id="workbench.key">
               {isClassicalAlgorithm(algorithm) && <p className="mb-4 text-xs leading-5 text-white/55">支持中文、Emoji 与混合文本；自动使用 UTF-8 编码后再执行所选算法。解密时请保留 LUMORA-UTF8-V1 前缀。古典密码与扩展仅供教学，不等同于现代安全加密。</p>}
               <div className="mb-3 flex items-center justify-between">
                 <span className="text-xs text-white/45">KEY MATERIAL / 密钥</span>
                 {algorithm !== "md5" && (
-                  <button className="mini-action" type="button" onClick={refreshKey}><Sparkles />生成</button>
+                  <button className="mini-action" data-agent-id="workbench.generate-key" type="button" onClick={refreshKey}><Sparkles />生成</button>
                 )}
               </div>
               {algorithm === "md5" ? (
@@ -226,13 +229,13 @@ export default function WorkbenchView() {
               <button type="button" className="secondary-button" onClick={() => fileRef.current?.click()}>
                 <FileUp />载入文本
               </button>
-              <button type="button" className="secondary-button" onClick={() => setInput(samples[algorithm])}>
+              <button type="button" className="secondary-button" data-agent-id="workbench.sample" onClick={() => setInput(samples[algorithm])}>
                 <KeyRound />示例内容
               </button>
               <input ref={fileRef} className="hidden" type="file" onChange={(event) => void loadFile(event.target.files?.[0])} />
             </div>
 
-            <button className="primary-button w-full" type="button" onClick={() => void run()} disabled={busy}>
+            <button className="primary-button w-full" data-agent-id="workbench.run" type="button" onClick={() => void run()} disabled={busy}>
               {busy ? <LoaderCircle className="animate-spin" /> : <Play />}
               {algorithm === "md5" ? "计算 MD5" : mode === "encrypt" ? "执行加密" : "执行解密"}
             </button>

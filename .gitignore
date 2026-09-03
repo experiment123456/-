@@ -2,6 +2,7 @@ node_modules/
 dist/
 .env
 .env.*
+!.env.example
 *.log
 .DS_Store
 data/
@@ -13,5 +14,7 @@ playwright-report/
 test-results/
 .edge-qa-*/
 .codex/
+.tmp-active-theory-*/
+activetheory-work-clone-nav-orb-cleaned.zip
 *.tmp
 *.bak

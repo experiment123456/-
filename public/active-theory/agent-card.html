@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Lumora 智能导师卡片素材</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+    body {
+      color: #f2fff9;
+      background:
+        radial-gradient(circle at 72% 35%, rgba(123, 255, 218, .18), transparent 25%),
+        radial-gradient(circle at 15% 82%, rgba(174, 117, 255, .16), transparent 32%),
+        linear-gradient(145deg, #0b1513, #020706 68%);
+      font-family: Inter, "Microsoft YaHei", system-ui, sans-serif;
+    }
+    body::before {
+      position: absolute; inset: -20%;
+      background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px), linear-gradient(90deg,rgba(255,255,255,.025) 1px, transparent 1px);
+      background-size: 68px 68px; transform: perspective(700px) rotateX(58deg) translateY(28%); content: "";
+    }
+    .noise { position: absolute; inset: 0; opacity: .08; background: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+    .frame { position: absolute; inset: 42px; border: 1px solid rgba(215,255,243,.22); border-radius: 30px; background: rgba(2,9,7,.32); box-shadow: inset 0 1px rgba(255,255,255,.1); }
+    header { position: absolute; z-index: 2; top: 72px; right: 78px; left: 78px; display: flex; align-items: center; justify-content: space-between; }
+    .brand { display: flex; align-items: center; gap: 14px; font-size: 16px; font-weight: 700; letter-spacing: .08em; }
+    .brand i { display: grid; width: 42px; height: 42px; place-items: center; border: 1px solid rgba(210,255,243,.36); border-radius: 50%; font-size: 10px; font-style: normal; }
+    header > span { color: rgba(224,247,240,.44); font: 10px ui-monospace, monospace; letter-spacing: .16em; }
+    main { position: absolute; z-index: 2; inset: 150px 90px 80px; display: grid; grid-template-columns: .82fr 1.18fr; align-items: center; gap: 78px; }
+    .copy small { color: rgba(185,255,234,.55); font: 10px ui-monospace, monospace; letter-spacing: .18em; }
+    h1 { max-width: 600px; margin: 24px 0 18px; font-family: Georgia, "Microsoft YaHei", serif; font-size: 72px; font-weight: 400; line-height: .98; letter-spacing: -.045em; }
+    .copy p { max-width: 520px; color: rgba(230,244,239,.62); font-size: 16px; line-height: 1.8; }
+    .visual { position: relative; min-height: 480px; }
+    .orb { position: absolute; top: 50%; left: 50%; width: 390px; aspect-ratio: 1; transform: translate(-50%,-50%); border: 1px solid rgba(197,255,238,.18); border-radius: 50%; background: radial-gradient(circle at 36% 28%, rgba(230,255,248,.5), transparent 8%), radial-gradient(circle at 40% 34%, rgba(114,255,215,.33), transparent 28%), radial-gradient(circle at 68% 72%, rgba(166,115,255,.25), transparent 35%), radial-gradient(circle, rgba(24,87,69,.7), rgba(3,10,8,.96) 70%); box-shadow: inset -45px -40px 85px #0009, 0 0 90px rgba(112,255,214,.14); }
+    .orb::before, .orb::after { position: absolute; border: 1px solid rgba(210,255,243,.2); border-radius: 50%; content: ""; }
+    .orb::before { inset: -12% 22%; transform: rotate(48deg); }
+    .orb::after { inset: 24% -10%; transform: rotate(-16deg); }
+    .panel { position: absolute; inset: 40px 0; display: grid; align-content: center; gap: 12px; }
+    .row { display: grid; grid-template-columns: 42px 1fr auto; align-items: center; gap: 14px; border: 1px solid rgba(218,247,238,.15); border-radius: 16px; padding: 18px 20px; background: rgba(5,13,11,.72); box-shadow: 0 18px 55px #0005; backdrop-filter: blur(14px); }
+    .row em { color: rgba(208,242,231,.45); font: 11px ui-monospace, monospace; font-style: normal; }
+    .row b { font-size: 16px; font-weight: 550; }
+    .row span { color: rgba(205,244,231,.48); font-size: 11px; letter-spacing: .1em; }
+    .chat { position: absolute; inset: 6px 0; overflow: hidden; border: 1px solid rgba(214,247,237,.22); border-radius: 24px; background: rgba(3,9,7,.9); box-shadow: 0 24px 80px #0008; }
+    .chat-head { height: 76px; border-bottom: 1px solid rgba(255,255,255,.1); padding: 26px; font-weight: 650; }
+    .bubble { margin: 28px; border: 1px solid rgba(255,255,255,.11); border-radius: 8px 18px 18px 18px; padding: 20px; color: rgba(239,250,246,.75); background: rgba(255,255,255,.035); line-height: 1.7; }
+    .input { position: absolute; right: 22px; bottom: 22px; left: 22px; height: 70px; border: 1px solid rgba(218,244,236,.2); border-radius: 16px; padding: 24px; color: rgba(233,245,241,.38); }
+    .launch { position: absolute; inset: 34px 0; display: grid; place-items: center; border: 1px solid rgba(201,255,238,.24); border-radius: 28px; background: radial-gradient(circle at center, rgba(107,255,213,.12), rgba(3,9,7,.86) 60%); }
+    .launch > div { text-align: center; }
+    .launch i { display: grid; width: 112px; height: 112px; margin: 0 auto 28px; place-items: center; border: 1px solid rgba(199,255,237,.35); border-radius: 50%; color: #e5fff7; background: radial-gradient(circle, rgba(118,255,216,.2), transparent 68%); font: 26px Georgia, serif; box-shadow: 0 0 60px rgba(116,255,217,.18); }
+    .launch b { display: block; font: 36px Georgia, "Microsoft YaHei", serif; font-weight: 400; }
+    .launch span { display: block; margin-top: 12px; color: rgba(226,244,238,.5); font-size: 13px; letter-spacing: .08em; }
+  </style>
+</head>
+<body>
+  <div class="noise"></div><div class="frame"></div>
+  <header><div class="brand"><i>LU</i>Lumora 智能导师</div><span id="meta"></span></header>
+  <main><section class="copy"><small id="eyebrow"></small><h1 id="title"></h1><p id="body"></p></section><section class="visual" id="visual"></section></main>
+  <script>
+    const cards = {
+      welcome: { meta: "欢迎 / AI 空间", eyebrow: "01 / 智能导师", title: "欢迎进入<br>Lumora 智能导师", body: "一位真正理解当前界面的密码学导师。它能回答问题，也能带你完成安全的站内实验。", visual: '<div class="orb"></div>' },
+      guide: { meta: "引导 / 参观", eyebrow: "02 / 工作方式", title: "从提问到<br>界面操作", body: "智能导师先理解目标，再打开页面、高亮控件、执行白名单操作，最后解释每一步发生了什么。", visual: '<div class="panel"><div class="row"><em>01</em><b>理解你的问题</b><span>规划</span></div><div class="row"><em>02</em><b>定位实验控件</b><span>聚焦</span></div><div class="row"><em>03</em><b>执行并解释结果</b><span>讲解</span></div></div>' },
+      capabilities: { meta: "密码 / 实验室", eyebrow: "03 / 核心能力", title: "算法知识<br>连接实验", body: "覆盖 AES、SM2、DH、摘要算法与双机通信，把抽象原理变成可以观察的过程。", visual: '<div class="panel"><div class="row"><em>AES</em><b>对称加密实验</b><span>GCM</span></div><div class="row"><em>DH</em><b>共享密钥推导</b><span>交换</span></div><div class="row"><em>SM2</em><b>国密算法讲解</b><span>ECC</span></div><div class="row"><em>摘要</em><b>摘要与完整性</b><span>验证</span></div></div>' },
+      security: { meta: "安全 / 检查", eyebrow: "04 / 安全边界", title: "安全边界<br>始终可见", body: "智能导师只调用经过验证的站内工具，不接收真实密码和私钥，也不会在未经确认时替用户建立外部连接。", visual: '<div class="panel"><div class="row"><em>✓</em><b>白名单站内操作</b><span>允许</span></div><div class="row"><em>×</em><b>真实密码与私钥</b><span>阻止</span></div><div class="row"><em>○</em><b>外部网络操作</b><span>确认</span></div></div>' },
+      launch: { meta: "静态 / 工作区", eyebrow: "05 / 开始使用", title: "准备好后<br>进入工作区", body: "动态展厅到这里结束。下一步切换到稳定的静态界面，专注输入、阅读和执行。", visual: '<div class="launch"><div><i>AI</i><b>开始使用智能导师</b><span>安静界面 / 已就绪</span></div></div>' }
+    };
+    const key = new URLSearchParams(location.search).get("card") || "welcome";
+    const card = cards[key] || cards.welcome;
+    document.querySelector("#meta").textContent = card.meta;
+    document.querySelector("#eyebrow").textContent = card.eyebrow;
+    document.querySelector("#title").innerHTML = card.title;
+    document.querySelector("#body").textContent = card.body;
+    document.querySelector("#visual").innerHTML = card.visual;
+  </script>
+</body>
+</html>

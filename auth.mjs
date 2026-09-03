@@ -134,11 +134,90 @@ function addActivity(user, label, detail) {
   user.activity = [{ id: randomUUID(), label, detail, at: new Date().toISOString() }, ...(user.activity || [])].slice(0, 24);
 }
 
+function normalizeConversationTitle(value) {
+  return String(value || "新对话").replace(/\s+/g, " ").trim().slice(0, 40) || "新对话";
+}
+
+function conversationSummary(conversation) {
+  const visible = [...(conversation.messages || [])].reverse().find((message) => message.role !== "tool" && message.content);
+  return {
+    id: conversation.id,
+    title: conversation.title,
+    preview: String(visible?.content || "尚未开始对话").replace(/\s+/g, " ").slice(0, 72),
+    createdAt: conversation.createdAt,
+    updatedAt: conversation.updatedAt,
+    messageCount: (conversation.messages || []).filter((message) => message.role === "user" || (message.role === "assistant" && message.content)).length,
+  };
+}
+
+export async function listAgentConversations(userId) {
+  const store = await readStore();
+  const user = store.users.find((candidate) => candidate.id === userId);
+  if (!user) return [];
+  return [...(user.agentConversations || [])]
+    .sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt)))
+    .map(conversationSummary);
+}
+
+export async function getAgentConversation(userId, conversationId) {
+  const store = await readStore();
+  const user = store.users.find((candidate) => candidate.id === userId);
+  const conversation = user?.agentConversations?.find((candidate) => candidate.id === conversationId);
+  return conversation ? structuredClone(conversation) : null;
+}
+
+export async function createAgentConversation(userId, title) {
+  return updateStore((store) => {
+    const user = store.users.find((candidate) => candidate.id === userId);
+    if (!user) throw new Error("登录状态已失效，请重新登录");
+    const now = new Date().toISOString();
+    const conversation = {
+      id: randomUUID(),
+      title: normalizeConversationTitle(title),
+      createdAt: now,
+      updatedAt: now,
+      messages: [],
+    };
+    user.agentConversations = [conversation, ...(user.agentConversations || [])].slice(0, 60);
+    return structuredClone(conversation);
+  });
+}
+
+export async function saveAgentConversation(userId, conversationId, title, messages) {
+  return updateStore((store) => {
+    const user = store.users.find((candidate) => candidate.id === userId);
+    if (!user) throw new Error("登录状态已失效，请重新登录");
+    const conversation = user.agentConversations?.find((candidate) => candidate.id === conversationId);
+    if (!conversation) throw new Error("没有找到这段历史对话");
+    conversation.title = normalizeConversationTitle(title || conversation.title);
+    conversation.updatedAt = new Date().toISOString();
+    conversation.messages = messages;
+    return structuredClone(conversation);
+  });
+}
+
+export async function deleteAgentConversation(userId, conversationId) {
+  return updateStore((store) => {
+    const user = store.users.find((candidate) => candidate.id === userId);
+    if (!user) throw new Error("登录状态已失效，请重新登录");
+    const conversations = user.agentConversations || [];
+    const index = conversations.findIndex((candidate) => candidate.id === conversationId);
+    if (index < 0) return false;
+    conversations.splice(index, 1);
+    return true;
+  });
+}
+
 async function requireUser(request) {
   const session = sessionFromRequest(request);
   if (!session) return null;
   const store = await readStore();
   return store.users.find((candidate) => candidate.id === session.userId) || null;
+}
+
+export async function authenticatedUserFromRequest(request) {
+  const user = await requireUser(request);
+  return user ? publicUser(user) : null;
 }
 
 export function createAuthHandler() {

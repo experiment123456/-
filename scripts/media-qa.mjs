@@ -59,6 +59,20 @@ try {
   results.navigationStartsMusic = true;
   results.loginInitialState = initialVideo;
 
+  const authenticatedMusic = await pageAt();
+  await authenticatedMusic.getByRole("tab", { name: "注册" }).click();
+  await authenticatedMusic.getByPlaceholder("你希望显示的名字").fill("音乐测试用户");
+  await authenticatedMusic.getByPlaceholder("3–24 位中文、字母或数字").fill(`music_${Date.now()}`);
+  await authenticatedMusic.getByPlaceholder("至少 8 位").fill("music-test-2026");
+  await authenticatedMusic.getByPlaceholder("再次输入密码").fill("music-test-2026");
+  await authenticatedMusic.getByRole("button", { name: "创建并进入" }).click();
+  await authenticatedMusic.waitForURL((url) => !url.hash);
+  await authenticatedMusic.waitForFunction(() => { const audio = document.querySelector("audio"); return audio && !audio.paused && !audio.muted && audio.currentTime > 0; });
+  results.authenticationStartsMusic = true;
+  await authenticatedMusic.locator(".home-music-toggle").click();
+  results.authenticatedMusicCanBeClosed = await authenticatedMusic.locator("audio").evaluate((audio) => audio.paused);
+  await authenticatedMusic.context().close();
+
   const workbench = await pageAt("#workbench");
   await workbench.locator(".home-music-toggle.needs-action").waitFor();
   await workbench.locator(".home-music-toggle").click();

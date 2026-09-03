@@ -11,10 +11,11 @@ import AuthView from "./views/AuthView";
 import InnovationView from "./views/InnovationView";
 import ImageLabView from "./views/ImageLabView";
 import OceanDashboard from "./views/OceanDashboard";
+import AgentExperience, { type AgentNavigateTarget } from "./components/AgentExperience";
 
 type LabView = "workbench" | "dh" | "network" | "catalog" | "innovation";
 type ModuleView = "image-lab" | "ocean";
-type AppView = "home" | LabView | ModuleView | "login" | "account";
+type AppView = "home" | LabView | ModuleView | "agent" | "login" | "account";
 
 const videos = [
   { label: "Golden Hour", src: "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260702_081127_0992a171-d3c6-4978-8213-0ec5df8b6d63.mp4" },
@@ -28,14 +29,14 @@ const navigation: Array<{ view: LabView; label: string; icon: typeof Braces }> =
   { view: "dh", label: "DH 交换", icon: KeyRound },
   { view: "network", label: "双机通信", icon: Network },
   { view: "catalog", label: "算法档案", icon: BookOpen },
-  { view: "innovation", label: "待创新", icon: Sparkles },
+  { view: "innovation", label: "AI 创新", icon: Sparkles },
 ];
 
 const uiFont: CSSProperties = { fontFamily: "system-ui, sans-serif" };
 
 function viewFromHash(): AppView {
   const value = location.hash.replace(/^#\/?/, "") as AppView;
-  return ["workbench", "dh", "network", "catalog", "innovation", "image-lab", "ocean", "login", "account"].includes(value) ? value : "login";
+  return ["workbench", "dh", "network", "catalog", "innovation", "image-lab", "ocean", "agent", "login", "account"].includes(value) ? value : "login";
 }
 
 function App() {
@@ -71,6 +72,8 @@ function App() {
   const isImageLab = view === "image-lab";
   const isOcean = view === "ocean";
   const isModuleView = isImageLab || isOcean;
+  const isAgentView = view === "agent";
+  const isInnovationSurface = isInnovationView || isAgentView;
 
   const playLoginVideo = useCallback((video: HTMLVideoElement, withSound: boolean) => {
     const request = ++loginRequestRef.current;
@@ -144,7 +147,7 @@ function App() {
   useEffect(() => {
     videoRefs.current.forEach((video, index) => {
       if (!video) return;
-      if (!["login", "innovation", "ocean", "image-lab"].includes(view) && index === activeVideo) void video.play().catch(() => undefined);
+      if (!["login", "innovation", "ocean", "image-lab", "agent"].includes(view) && index === activeVideo) void video.play().catch(() => undefined);
       else video.pause();
     });
   }, [activeVideo, view]);
@@ -215,7 +218,7 @@ function App() {
   };
 
   const navigate = (requested: AppView) => {
-    const next = requested === "account" && !user ? "login" : requested;
+    const next = (requested === "account" || requested === "agent") && !user ? "login" : requested;
     mediaViewRef.current = next;
     if (next !== "login") {
       loginRequestRef.current += 1;
@@ -245,6 +248,10 @@ function App() {
   const authenticated = (account: AccountUser) => {
     setUser(account);
     setMenuOpen(false);
+    // A successful sign-in is the explicit opt-in point for the home soundtrack.
+    // Keep the ref in sync immediately so navigate() can start it in this turn.
+    musicEnabledRef.current = true;
+    setHomeMusicEnabled(true);
     navigate("home");
   };
 
@@ -267,8 +274,8 @@ function App() {
 
   return (
     <section id="app-scene" className={`relative h-[100svh] w-full overflow-hidden bg-black text-white ${settings.reducedMotion ? "motion-reduced" : ""}`}>
-      {isInnovationView ? (
-        <div className="absolute inset-0 z-0 bg-[#06404b]" aria-hidden="true" />
+      {isInnovationSurface ? (
+        <div className={`absolute inset-0 z-0 ${isAgentView ? "bg-[#060808]" : "bg-[#06404b]"}`} aria-hidden="true" />
       ) : isModuleView ? (
         <div className="absolute inset-0 z-0" aria-hidden="true">
           <div className="absolute inset-0" style={{ background: "radial-gradient(120% 120% at 50% 0%, #043047 0%, #021428 62%, #010c18 100%)" }} />
@@ -375,7 +382,7 @@ function App() {
           {isImageLab && <ImageLabView onNavigate={navigate} />}
           {isOcean && <OceanDashboard onNavigate={navigate} />}
         </div>
-      ) : (
+      ) : isAgentView ? null : (
       <div className="relative z-[3] flex h-full flex-col px-4 py-4 sm:px-7 sm:py-6 lg:px-10 lg:py-7 xl:px-14">
         <nav className="flex shrink-0 items-center justify-between gap-3 text-white" aria-label="主导航" data-ripple-block>
           <button type="button" className="group flex items-center gap-3 text-left" onClick={() => navigate("home")} aria-label="返回首页">
@@ -385,7 +392,7 @@ function App() {
 
           <div className="liquid-glass hidden items-center gap-1 rounded-full p-1.5 md:flex" style={uiFont}>
             {navigation.map((item) => (
-              <button key={item.view} type="button" onClick={() => navigate(item.view)} className={`rounded-full px-4 py-2 text-sm transition-colors duration-300 lg:px-5 ${view === item.view ? "bg-white/12 text-white" : "text-white/75 hover:text-white"}`}>
+              <button key={item.view} type="button" data-agent-id={`nav.${item.view}`} onClick={() => navigate(item.view)} className={`rounded-full px-4 py-2 text-sm transition-colors duration-300 lg:px-5 ${view === item.view ? "bg-white/12 text-white" : "text-white/75 hover:text-white"}`}>
                 {item.label}
               </button>
             ))}
@@ -466,6 +473,13 @@ function App() {
         )}
       </div>
       )}
+
+      <AgentExperience
+        mode={isLoginView ? "hidden" : isAgentView ? "studio" : "dock"}
+        userId={user?.id}
+        userName={user?.displayName}
+        onNavigate={(target: AgentNavigateTarget) => navigate(target)}
+      />
 
       <div className={`fixed inset-0 z-50 md:hidden ${menuOpen ? "pointer-events-auto" : "pointer-events-none"}`} aria-hidden={!menuOpen} data-ripple-block>
         <div className={`absolute inset-0 bg-[#101516]/45 backdrop-blur-lg transition-opacity duration-500 ${menuOpen ? "opacity-100" : "opacity-0"}`} />

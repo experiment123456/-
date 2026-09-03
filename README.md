@@ -4,6 +4,8 @@
 
 首页右上角可进入账户页，支持注册、登录、退出、昵称、背景自动轮播、水纹交互和减少动态效果等偏好。密码使用 scrypt 加盐摘要保存，会话使用 HttpOnly Cookie；实验明文、密钥和传输文件不会写入账户档案。用户数据默认保存在运行目录下的 `data/users.json`（已加入 `.gitignore`）。
 
+“AI 创新”中包含独立的 Lumora Agent 中文界面。登录后可与千问流式对话，或让 Agent 打开 AES、DH、双机通信和算法档案页面，执行白名单限制的导航、高亮与教学演示。未配置千问 API Key 时自动使用本地演示模式，页面操作能力仍可测试；完整配置见 [AGENT-SETUP.md](AGENT-SETUP.md)。
+
 ## 本机开发
 
 GitHub 获取源码：在[项目仓库](https://github.com/shintamelinda319-sys/lumora-cipher)点 **Code → Download ZIP** 后完整解压，或在终端执行 `git clone https://github.com/shintamelinda319-sys/lumora-cipher.git`，然后 `cd lumora-cipher`。不要只下载 `src`，登录视频、锁文件和后端也需要保留。GitHub 仅传代码不代表网页已部署；双机仍需配置共享中继。
@@ -46,6 +48,8 @@ npm run test:unicode
 npm run test:relay
 npm run test:network
 npm run test:media
+npm run test:agent
+npm run test:agent-api
 ```
 
 `scripts/qa.mjs` 还会启动本机 Chrome，执行界面、双浏览器 Socket 消息与文件传输验收。

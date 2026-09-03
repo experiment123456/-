@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import JellyfishField from "../components/JellyfishField";
 
-type InnovationTarget = "home" | "workbench" | "ocean";
+type InnovationTarget = "home" | "workbench" | "ocean" | "agent";
 type InnovationViewProps = {
   onNavigate: (target: InnovationTarget) => void;
   musicPlaying: boolean;
@@ -33,9 +33,9 @@ type BubbleStyle = CSSProperties & {
   "--bubble-opacity": string;
 };
 
-const navItems = ["首页", "功能", "图片实验", "关于", "联系"] as const;
+const navItems = ["首页", "AI 导师", "功能", "图片实验", "关于", "联系"] as const;
 type NavItem = typeof navItems[number];
-type LocalSection = Exclude<NavItem, "首页" | "图片实验">;
+type LocalSection = Exclude<NavItem, "首页" | "AI 导师" | "图片实验">;
 
 const oceanGlassStyle: CSSProperties = {
   backdropFilter: "blur(13px) saturate(155%)",
@@ -159,6 +159,7 @@ export default function InnovationView({ onNavigate, musicPlaying, musicNeedsAct
 
   const selectSection = (item: NavItem) => {
     if (item === "首页") onNavigate("home");
+    else if (item === "AI 导师") onNavigate("agent");
     else if (item === "图片实验") onNavigate("ocean");
     else setActiveSection(item);
   };
@@ -171,7 +172,7 @@ export default function InnovationView({ onNavigate, musicPlaying, musicNeedsAct
       <header className="innovation-navbar innovation-glass" style={oceanGlassStyle} data-ripple-block>
         <button className="innovation-brand" type="button" onClick={() => onNavigate("home")} aria-label="返回 Lumora 首页">
           <span className="innovation-brand-mark"><Waves /></span>
-          <span><b>Lumora</b><small>OCEAN LAB / 05</small></span>
+          <span><b>Lumora</b><small>海洋实验室 / 05</small></span>
         </button>
 
         <nav className="innovation-nav-links" aria-label="待创新页面导航">
@@ -199,8 +200,8 @@ export default function InnovationView({ onNavigate, musicPlaying, musicNeedsAct
             {musicPlaying ? <Volume2 /> : musicNeedsAction ? <Play /> : <VolumeX />}
           </button>
           <button className="innovation-enter" type="button" onClick={() => onNavigate("workbench")}>进入</button>
-          <button className="innovation-start" type="button" onClick={() => setImmersive((value) => !value)}>
-            {immersive ? "退出体验" : "开始体验"}<ArrowRight />
+          <button className="innovation-start" type="button" onClick={() => onNavigate("agent")}>
+            启动智能导师<ArrowRight />
           </button>
         </div>
       </header>
@@ -208,21 +209,21 @@ export default function InnovationView({ onNavigate, musicPlaying, musicNeedsAct
       <main className="innovation-stage">
         <section className="innovation-main-panel innovation-glass" style={oceanGlassStyle}>
           <div className="innovation-panel-shine" aria-hidden="true" />
-          <div className="innovation-eyebrow"><Sparkles /><span>OCEAN GLASS / CONCEPT 05</span><i /></div>
-          <p className="innovation-kicker">Dynamic Ocean Interface Concept</p>
-          <h1>待创新页面</h1>
-          <p className="innovation-intro">一片拥有光照、流体与生物反馈的数字海域。界面保持安静，细节始终在呼吸。</p>
+          <div className="innovation-eyebrow"><Sparkles /><span>海洋玻璃 / 概念 05</span><i /></div>
+          <p className="innovation-kicker">智能密码交互界面</p>
+          <h1>AI 创新界面</h1>
+          <p className="innovation-intro">让千问成为站内密码学导师：既能回答算法问题，也能打开页面、高亮控件并完成安全的教学演示。</p>
 
           <div className="innovation-fields">
             <div className="innovation-field">
-              <span><Radio />ACTIVE SIGNAL</span>
+              <span><Radio />当前信号</span>
               <b>{detail.label}</b>
               <small>{detail.value}</small>
             </div>
             <div className="innovation-field">
-              <span><Compass />INTERFACE MODE</span>
+              <span><Compass />界面模式</span>
               <b>{activeSection} / 流动界面</b>
-              <small>REALTIME</small>
+              <small>实时</small>
             </div>
           </div>
 
@@ -232,16 +233,16 @@ export default function InnovationView({ onNavigate, musicPlaying, musicNeedsAct
           </div>
 
           <div className="innovation-panel-footer">
-            <button className="innovation-primary" type="button" onClick={() => setImmersive((value) => !value)}>
-              <span>{immersive ? "正在探索" : "开始探索"}</span><ArrowRight />
+            <button className="innovation-primary" type="button" onClick={() => onNavigate("agent")}>
+              <span>进入 AI 导师</span><ArrowRight />
             </button>
-            <div className="innovation-live"><i /><span><b>LIVE OCEAN</b><small>CAUSTICS / PARTICLES / LIFE</small></span></div>
+            <div className="innovation-live"><i /><span><b>实时海洋</b><small>焦散 / 粒子 / 生命</small></span></div>
           </div>
         </section>
 
         <aside className="innovation-data-card innovation-glass" style={oceanGlassStyle} aria-label="海洋数据卡片">
           <div className="innovation-card-top">
-            <span><Droplets />OCEAN INTERFACE</span>
+            <span><Droplets />海洋界面</span>
             <i>05</i>
           </div>
 
@@ -253,27 +254,27 @@ export default function InnovationView({ onNavigate, musicPlaying, musicNeedsAct
           </div>
 
           <div className="innovation-card-status">
-            <span>DEPTH SIGNAL</span>
-            <b>{immersive ? "EXPLORING" : "STABLE"}</b>
+            <span>深度信号</span>
+            <b>{immersive ? "探索中" : "稳定"}</b>
           </div>
 
           <div className="innovation-card-grid">
-            <div><span>STATUS</span><b>{immersive ? "ACTIVE" : "READY"}</b></div>
-            <div><span>MODE</span><b>EXPERIMENTAL</b></div>
-            <div><span>UI FLOW</span><b>05 / AQUA</b></div>
-            <div><span>RESPONSE</span><b>16.7 MS</b></div>
+            <div><span>状态</span><b>{immersive ? "运行中" : "已就绪"}</b></div>
+            <div><span>模式</span><b>实验模式</b></div>
+            <div><span>界面流</span><b>05 / 海洋</b></div>
+            <div><span>响应</span><b>16.7 毫秒</b></div>
           </div>
 
           <div className="innovation-card-bottom">
-            <span><Activity />BIO FIELD ONLINE</span>
-            <span><Layers3 />GLASS 04</span>
+            <span><Activity />生命场已在线</span>
+            <span><Layers3 />玻璃 04</span>
           </div>
         </aside>
       </main>
 
       <div className="innovation-jelly-hint innovation-glass" style={oceanGlassStyle} data-ripple-block>
         <MousePointer2 />
-        <span><b>JELLYFISH FIELD</b><small>移动鼠标靠近水母，观察它们的逃离反应</small></span>
+        <span><b>水母场</b><small>移动鼠标靠近水母，观察它们的逃离反应</small></span>
       </div>
 
       <button className="innovation-back" type="button" onClick={() => onNavigate("home")} aria-label="返回主界面" data-ripple-block>

@@ -2,8 +2,11 @@ import { createReadStream, existsSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import { extname, join, normalize, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import "./config.mjs";
 import { attachRelay, serveRelayInfo, localRelayAddresses } from "./relay.mjs";
 import { createAuthHandler } from "./auth.mjs";
+import { authenticatedUserFromRequest } from "./auth.mjs";
+import { createAgentHandler } from "./agent.mjs";
 
 const root = resolve(fileURLToPath(new URL("./dist", import.meta.url)));
 const port = Number(process.env.PORT || 4173);
@@ -94,9 +97,10 @@ const serveStatic = (request, response) => {
 };
 
 const authHandler = createAuthHandler();
+const agentHandler = createAgentHandler({ getUser: authenticatedUserFromRequest });
 const server = createServer((request, response) => {
   if (serveRelayInfo(request, response, server)) return;
-  void authHandler(request, response, () => serveStatic(request, response));
+  void agentHandler(request, response, () => authHandler(request, response, () => serveStatic(request, response)));
 });
 
 attachRelay(server);

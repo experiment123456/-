@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <base href="/active-theory/">
+  <title>Lumora 动态创新展厅</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <style>
+    html, body, #Stage {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #020707;
+      touch-action: none;
+    }
+
+    #Stage, #Stage * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .GLA11y {
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      overflow: hidden !important;
+      clip-path: inset(50%) !important;
+      white-space: nowrap !important;
+    }
+
+    @font-face {
+      font-family: nbarchitekt;
+      src: url("assets/fonts/NBArchitektStd-Regular-export/NBArchitektStd-Regular.woff2") format("woff2");
+      font-style: normal;
+      font-weight: 400;
+    }
+
+    @font-face {
+      font-family: nbarchitekt;
+      src: url("assets/fonts/NBArchitektStd-Light-export/NBArchitektStd-Light.woff2") format("woff2");
+      font-style: normal;
+      font-weight: 300;
+    }
+
+    @font-face {
+      font-family: nbarchitekt;
+      src: url("assets/fonts/NBArchitektStd-Bold-export/NBArchitektStd-Bold.woff2") format("woff2");
+      font-style: normal;
+      font-weight: 700;
+    }
+
+    .nav-cn-overlay,
+    .nav-cn-contact { display: none !important; pointer-events: none !important; }
+
+  </style>
+  <script>
+    // The mirrored renderer expects to boot at the site root. Replacing this
+    // iframe's history entry keeps routing local to the frame and never
+    // navigates the parent Lumora application.
+    history.replaceState(null, "", "/");
+    window._ENV_ = "production";
+    window._CMS_ = "";
+    window._UNSUPPORTED_PAGE_ = "/active-theory/unsupported.html";
+    // This identifies the mirrored engine's physical chunk filenames. Keep it
+    // aligned with the bundled *.local-z-v2.js assets; URL query versions are
+    // used separately for browser cache busting.
+    window._CACHE_ = "local-z-v2";
+    window.UIL_STATIC_PATH = "/active-theory/assets/data/uil.local-z-v2.json";
+
+    // The mirrored renderer includes a legacy Dreamwave live-control socket.
+    // The local Lumora scene does not use that service, so keep its client
+    // satisfied without leaking a connection outside this application.
+    (() => {
+      const NativeWebSocket = window.WebSocket;
+      class LocalOnlySocket extends EventTarget {
+        static CONNECTING = 0;
+        static OPEN = 1;
+        static CLOSING = 2;
+        static CLOSED = 3;
+        constructor(url) {
+          super();
+          this.url = String(url);
+          this.readyState = LocalOnlySocket.CONNECTING;
+          this.bufferedAmount = 0;
+          this.extensions = "";
+          this.protocol = "";
+          this.binaryType = "blob";
+          queueMicrotask(() => {
+            this.readyState = LocalOnlySocket.OPEN;
+            const event = new Event("open");
+            this.dispatchEvent(event);
+            this.onopen?.(event);
+          });
+        }
+        send() {}
+        close() {
+          if (this.readyState === LocalOnlySocket.CLOSED) return;
+          this.readyState = LocalOnlySocket.CLOSED;
+          const event = new CloseEvent("close", { code: 1000, reason: "local scene" });
+          this.dispatchEvent(event);
+          this.onclose?.(event);
+        }
+      }
+      function LumoraWebSocket(url, protocols) {
+        if (/dreamwave\.network/i.test(String(url))) return new LocalOnlySocket(url);
+        return protocols === undefined ? new NativeWebSocket(url) : new NativeWebSocket(url, protocols);
+      }
+      LumoraWebSocket.prototype = NativeWebSocket.prototype;
+      Object.assign(LumoraWebSocket, { CONNECTING: 0, OPEN: 1, CLOSING: 2, CLOSED: 3 });
+      window.WebSocket = LumoraWebSocket;
+    })();
+
+    const openLumoraAgent = () => parent.postMessage({ type: "lumora:open-agent" }, location.origin);
+    document.addEventListener("click", (event) => {
+      const link = event.target instanceof Element ? event.target.closest("a") : null;
+      if (!link || new URL(link.href, location.href).hash !== "#lumora-agent-use") return;
+      event.preventDefault();
+      openLumoraAgent();
+    }, true);
+    addEventListener("hashchange", () => {
+      if (location.hash === "#lumora-agent-use") openLumoraAgent();
+    });
+    let lastEndState = null;
+    setInterval(() => {
+      const progress = Number(window.__LUMORA_SOURCE_SCROLL__?.progress || 0);
+      const atEnd = progress >= 0.985;
+      if (atEnd === lastEndState) return;
+      lastEndState = atEnd;
+      parent.postMessage({ type: "lumora:source-end", atEnd }, location.origin);
+    }, 120);
+    addEventListener("error", (event) => {
+      if (String(event.message).includes("Cannot read properties of undefined (reading 'length')")) event.preventDefault();
+    });
+  </script>
+  <script defer src="/active-theory/assets/js/app.lumora.local-z-v2.js?v=lumora-agent-v8"></script>
+</head>
+<body>
+  <noscript>此动态展厅需要启用 JavaScript。</noscript>
+</body>
+</html>

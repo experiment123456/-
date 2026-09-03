@@ -15,7 +15,7 @@ export default function CatalogView({ onOpen }: { onOpen: (view: "workbench" | "
         <button className="primary-button" type="button" onClick={() => onOpen("workbench")}>进入单机实验台 <ArrowRight /></button>
       </header>
 
-      <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" data-agent-id="catalog.grid">
         {algorithms.map((item, index) => (
           <button className={`catalog-card accent-${accents[index % accents.length]} group rounded-[26px] p-5 text-left`} key={item.id} type="button" onClick={() => onOpen("workbench")}>
             <div className="flex items-start justify-between"><span className="catalog-index">0{index + 1}</span><ArrowRight className="h-4 w-4 opacity-35 transition group-hover:translate-x-1 group-hover:opacity-100" /></div>
@@ -35,4 +35,3 @@ export default function CatalogView({ onOpen }: { onOpen: (view: "workbench" | "
     </div>
   );
 }
-

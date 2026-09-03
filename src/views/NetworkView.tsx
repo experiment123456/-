@@ -410,7 +410,7 @@ export default function NetworkView() {
 
         <label className="field-label mt-5">
           <span>RELAY / 中继服务器地址</span>
-          <input aria-label="中继服务器地址" className="field-control font-mono text-xs" value={relayUrl} onChange={(event) => setRelayUrl(event.target.value)} disabled={!editable} placeholder="ws://主机局域网IP:5173/ws" />
+          <input aria-label="中继服务器地址" data-agent-id="network.relay" className="field-control font-mono text-xs" value={relayUrl} onChange={(event) => setRelayUrl(event.target.value)} disabled={!editable} placeholder="ws://主机局域网IP:5173/ws" />
         </label>
         <p className="mt-2 text-xs leading-5 text-white/50">两台电脑各自打开 localhost 网页，但这里必须填写同一台主机的中继地址。只填相同房间码不够。</p>
         <details className="mt-2 text-xs leading-5 text-white/50">
@@ -424,12 +424,12 @@ export default function NetworkView() {
         <label className="field-label mt-5">
           <span>ROOM CODE / 房间码</span>
           <div className="relative">
-            <input aria-label="房间码" maxLength={18} className="field-control pr-10 font-mono uppercase tracking-wider" value={room} onChange={(event) => setRoom(event.target.value.toUpperCase())} disabled={!editable} />
+            <input aria-label="房间码" data-agent-id="network.room" maxLength={18} className="field-control pr-10 font-mono uppercase tracking-wider" value={room} onChange={(event) => setRoom(event.target.value.toUpperCase())} disabled={!editable} />
             <button className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-white/45 hover:text-white" type="button" onClick={() => void copyText(room)} title="复制房间码"><Clipboard className="h-4 w-4" /></button>
           </div>
         </label>
 
-        <button className={`mt-3 w-full ${status === "offline" || status === "error" ? "primary-button" : "secondary-button"}`} type="button" onClick={status === "offline" || status === "error" ? connect : disconnect}>
+        <button className={`mt-3 w-full ${status === "offline" || status === "error" ? "primary-button" : "secondary-button"}`} data-agent-id="network.connect" type="button" onClick={status === "offline" || status === "error" ? connect : disconnect}>
           {status === "connecting" ? <LoaderCircle className="animate-spin" /> : status === "offline" || status === "error" ? <Link /> : <Unplug />}
           {status === "offline" || status === "error" ? "连接安全房间" : status === "connecting" ? "连接中…" : "断开连接"}
         </button>

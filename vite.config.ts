@@ -1,10 +1,14 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import "./config.mjs";
 import { attachRelay, serveRelayInfo } from "./relay.mjs";
 import { createAuthHandler } from "./auth.mjs";
+import { authenticatedUserFromRequest } from "./auth.mjs";
+import { createAgentHandler } from "./agent.mjs";
 
 const authHandler = createAuthHandler();
+const agentHandler = createAgentHandler({ getUser: authenticatedUserFromRequest });
 
 const relayPlugin = {
   name: "lumora-websocket-relay",
@@ -12,6 +16,7 @@ const relayPlugin = {
     server.middlewares.use((request, response, next) => {
       if (!server.httpServer || !serveRelayInfo(request, response, server.httpServer)) next?.();
     });
+    server.middlewares.use(agentHandler);
     server.middlewares.use(authHandler);
     if (server.httpServer) attachRelay(server.httpServer);
   },
@@ -19,6 +24,7 @@ const relayPlugin = {
     server.middlewares.use((request, response, next) => {
       if (!server.httpServer || !serveRelayInfo(request, response, server.httpServer)) next?.();
     });
+    server.middlewares.use(agentHandler);
     server.middlewares.use(authHandler);
     if (server.httpServer) attachRelay(server.httpServer);
   },

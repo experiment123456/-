@@ -16,6 +16,7 @@
     "test:relay": "node scripts/relay-qa.mjs",
     "test:network": "node scripts/network-qa.mjs",
     "test:media": "node scripts/media-qa.mjs",
+    "test:innovation": "node scripts/innovation-qa.mjs",
     "test:agent": "node scripts/agent-qa.mjs",
     "test:agent-api": "node scripts/agent-api-qa.mjs",
     "test:share": "node scripts/share-qa.mjs",

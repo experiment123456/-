@@ -114,6 +114,20 @@ try {
     requestAnimationFrame(sample);
   }));
 
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(`${base}#innovation`, { waitUntil: "domcontentloaded" });
+  await page.getByRole("heading", { name: "AI 智能导师" }).waitFor();
+  results.reducedMotionJellyfish = await page.locator(".ocean-jellyfish").count() === 6;
+  await page.mouse.move(0, 0);
+  const reducedJelly = page.locator(".ocean-jellyfish").first();
+  const reducedBefore = await reducedJelly.boundingBox();
+  if (!reducedBefore) throw new Error("Reduced-motion jellyfish has no bounding box");
+  await page.mouse.move(reducedBefore.x + reducedBefore.width / 2 + 46, reducedBefore.y + reducedBefore.height / 2, { steps: 3 });
+  await page.waitForTimeout(520);
+  const reducedAfter = await reducedJelly.boundingBox();
+  if (!reducedAfter) throw new Error("Reduced-motion jellyfish disappeared during pointer test");
+  results.reducedMotionPointerFeedback = Math.hypot(reducedAfter.x - reducedBefore.x, reducedAfter.y - reducedBefore.y) > 5;
+
   results.noRuntimeErrors = errors.length === 0;
 } finally {
   await browser.close();
@@ -143,6 +157,8 @@ const booleans = [
   results.imageRoute,
   results.homeEntry,
   results.homeMusicContinues,
+  results.reducedMotionJellyfish,
+  results.reducedMotionPointerFeedback,
   results.noRuntimeErrors,
 ];
 console.log(JSON.stringify({ ok: booleans.every(Boolean), results, errors, screenshotDir }, null, 2));

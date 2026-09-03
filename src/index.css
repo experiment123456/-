@@ -3254,6 +3254,16 @@ button:disabled {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+
+  /* Keep direct pointer feedback visible while suppressing ambient motion. */
+  .water-ripple-click,
+  .water-ripple-click::after {
+    animation-duration: 700ms !important;
+  }
+
+  .water-ripple-trail {
+    animation-duration: 360ms !important;
+  }
 }
 
 /* ============================================================

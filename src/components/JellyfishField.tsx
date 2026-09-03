@@ -114,13 +114,6 @@ export default function JellyfishField() {
     const clearPointer = () => { pointerRef.current = { x: -10_000, y: -10_000 }; };
 
     initialise();
-    if (reducedMotion) {
-      agentsRef.current.forEach((agent, index) => {
-        elements[index]?.style.setProperty("transform", `translate3d(${agent.x}px, ${agent.y}px, 0)`);
-      });
-      return;
-    }
-
     let previous = performance.now();
     const animate = (time: number) => {
       const frameScale = Math.min(2.1, Math.max(0.35, (time - previous) / 16.667));
@@ -145,17 +138,19 @@ export default function JellyfishField() {
           agent.vx += normalX * force * frameScale;
           agent.vy += normalY * force * frameScale;
           agent.alert = Math.min(1, agent.alert + 0.16 * frameScale);
-        } else {
+        } else if (!reducedMotion) {
           agent.alert *= Math.pow(0.955, frameScale);
           agent.vx += Math.cos(seconds * 0.38 + agent.phase) * 0.0052 * frameScale;
           agent.vy += (Math.sin(seconds * 0.31 + agent.phase) * 0.004 - 0.0008) * frameScale;
+        } else {
+          agent.alert *= Math.pow(0.9, frameScale);
         }
 
-        const damping = agent.alert > 0.08 ? 0.988 : 0.972;
+        const damping = reducedMotion ? (agent.alert > 0.08 ? 0.965 : 0.82) : (agent.alert > 0.08 ? 0.988 : 0.972);
         agent.vx *= Math.pow(damping, frameScale);
         agent.vy *= Math.pow(damping, frameScale);
 
-        const maxSpeed = agent.cruise + agent.alert * 4.7;
+        const maxSpeed = reducedMotion ? agent.alert * 2.8 : agent.cruise + agent.alert * 4.7;
         const currentSpeed = Math.hypot(agent.vx, agent.vy);
         if (currentSpeed > maxSpeed) {
           agent.vx = (agent.vx / currentSpeed) * maxSpeed;

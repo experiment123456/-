@@ -1251,17 +1251,21 @@ button:disabled {
 }
 
 .auth-story {
-  max-width: 520px;
-  margin-left: clamp(0px, 3vw, 54px);
+  max-width: 600px;
+  margin-left: clamp(0px, 2vw, 40px);
+  align-self: flex-end;
+  margin-bottom: clamp(20px, 7vh, 70px);
   text-shadow: 0 4px 36px rgba(0, 0, 0, 0.72);
   animation: auth-story-in 1s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .auth-story h1 {
   margin-top: 16px;
-  font-size: clamp(2.7rem, 5vw, 5.6rem);
-  line-height: 0.98;
-  letter-spacing: -0.04em;
+  font-family: "Instrument Serif", "Noto Serif SC", serif;
+  font-weight: 600;
+  font-size: clamp(2.8rem, 4.6vw, 4.5rem);
+  line-height: 1.22;
+  letter-spacing: -0.02em;
 }
 
 .auth-story h1 i {
@@ -1426,6 +1430,24 @@ button:disabled {
 
 .auth-input input::placeholder {
   color: rgba(208, 235, 243, 0.25);
+}
+
+/* OÈhê¨kE:67}•ÑWÙÌŠkE‹Þñr»ƒÎ< */
+.auth-input input:-webkit-autofill,
+.auth-input input:-webkit-autofill:hover,
+.auth-input input:-webkit-autofill:focus {
+  -webkit-text-fill-color: rgba(245, 252, 255, 0.9);
+  caret-color: rgba(245, 252, 255, 0.9);
+  -webkit-box-shadow: 0 0 0 1000px #0a1622 inset;
+  box-shadow: 0 0 0 1000px #0a1622 inset;
+  border-radius: 15px;
+  transition: background-color 99999s ease-out;
+}
+
+.auth-input input:autofill {
+  -webkit-text-fill-color: rgba(245, 252, 255, 0.9);
+  caret-color: rgba(245, 252, 255, 0.9);
+  box-shadow: 0 0 0 1000px #0a1622 inset;
 }
 
 .auth-input button {
@@ -1932,7 +1954,7 @@ button:disabled {
   }
 
   .auth-story h1 {
-    font-size: clamp(2.5rem, 5.8vw, 4rem);
+    font-size: clamp(2rem, 3.8vw, 2.6rem);
   }
 
   .auth-story > p:not(.eyebrow),

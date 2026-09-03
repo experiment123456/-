@@ -696,7 +696,7 @@ export default function AgentExperience({ mode, userId, userName, onNavigate }: 
         <iframe
           ref={sourceFrameRef}
           className="agent-showcase-frame"
-          src="/active-theory/frame.html?v=lumora-agent-v8"
+          src="/active-theory/frame.html?v=lumora-agent-v13"
           title="Lumora Agent 动态作品空间"
           sandbox="allow-scripts allow-same-origin"
         />
@@ -706,7 +706,7 @@ export default function AgentExperience({ mode, userId, userName, onNavigate }: 
           </div>
           <span>LUMORA 智能导师 / 互动展厅</span>
         </header>
-        {!sourceAtEnd && <div className="agent-showcase-hint" aria-hidden="true"><span>向下滚动探索</span><i /></div>}
+        {!sourceAtEnd && <div className="agent-showcase-hint" aria-hidden="true"><span>SCROLL TO EXPLORE</span><i /></div>}
         {sourceAtEnd && (
           <button className="agent-showcase-bottom-entry" type="button" aria-label="进入 Agent 对话" onClick={() => { setActivated(true); setUsingAgent(true); }}>
             <Bot /><span>进入 Agent 对话</span><small>LUMORA 智能导师 / 互动展厅</small>

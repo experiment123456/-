@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
   <base href="/active-theory/">
-  <title>Lumora 动态创新展厅</title>
+  <title>Lumora Interactive Experience</title>
   <link rel="icon" type="image/png" href="/favicon.png">
   <style>
     html, body, #Stage {
@@ -56,6 +56,146 @@
     .nav-cn-overlay,
     .nav-cn-contact { display: none !important; pointer-events: none !important; }
 
+    .ChatDOM {
+      display: none !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+
+    .cage-core {
+      --cage-core-y: 55%;
+      position: fixed;
+      z-index: 20;
+      left: 50%;
+      top: var(--cage-core-y);
+      width: clamp(118px, 10vw, 168px);
+      aspect-ratio: 1;
+      pointer-events: none;
+      opacity: 0;
+      mix-blend-mode: screen;
+      filter: saturate(.82);
+      transform: translate(-50%, -50%) scale(.72);
+      transition: opacity .65s ease, transform .9s cubic-bezier(.2, .72, .2, 1);
+      will-change: top, opacity, transform;
+    }
+
+    .cage-core.is-visible {
+      opacity: .82;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .cage-core__beam {
+      position: absolute;
+      left: 50%;
+      top: -82%;
+      width: 22%;
+      height: 264%;
+      transform: translateX(-50%);
+      background: linear-gradient(90deg, transparent, rgba(173, 244, 255, .02) 26%, rgba(221, 249, 255, .18) 49%, rgba(175, 217, 255, .03) 72%, transparent);
+      filter: blur(4px);
+      opacity: .72;
+    }
+
+    .cage-core__ring {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      border: 1px solid rgba(211, 245, 255, .52);
+      border-radius: 50%;
+      box-shadow: 0 0 8px rgba(130, 223, 255, .18), inset 0 0 7px rgba(194, 164, 255, .12);
+    }
+
+    .cage-core__ring--outer {
+      width: 100%;
+      height: 38%;
+      animation: cage-orbit-outer 9s linear infinite;
+    }
+
+    .cage-core__ring--inner {
+      width: 72%;
+      height: 72%;
+      border-color: rgba(208, 187, 255, .38);
+      animation: cage-orbit-inner 7s linear infinite reverse;
+    }
+
+    .cage-core__ring::before,
+    .cage-core__ring::after {
+      content: "";
+      position: absolute;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #e7fbff;
+      box-shadow: 0 0 9px 3px rgba(127, 225, 255, .65);
+    }
+
+    .cage-core__ring::before { left: 11%; top: 12%; }
+    .cage-core__ring::after { right: 9%; bottom: 14%; width: 3px; height: 3px; }
+
+    .cage-core__nucleus {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 35%;
+      height: 55%;
+      clip-path: polygon(50% 0, 86% 26%, 72% 82%, 50% 100%, 28% 82%, 14% 26%);
+      background:
+        linear-gradient(115deg, rgba(255, 255, 255, .92) 4%, rgba(159, 239, 255, .48) 31%, rgba(109, 111, 190, .2) 58%, rgba(223, 196, 255, .78) 83%),
+        rgba(163, 226, 255, .3);
+      border: 1px solid rgba(255, 255, 255, .74);
+      filter: drop-shadow(0 0 8px rgba(129, 232, 255, .74)) drop-shadow(0 0 20px rgba(151, 131, 255, .34));
+      transform: translate(-50%, -50%);
+      animation: cage-core-breathe 3.8s ease-in-out infinite;
+    }
+
+    .cage-core__nucleus::after {
+      content: "";
+      position: absolute;
+      inset: 18% 26%;
+      background: linear-gradient(180deg, rgba(255, 255, 255, .94), rgba(159, 240, 255, .08));
+      filter: blur(1px);
+    }
+
+    .cage-core__spark {
+      position: absolute;
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: rgba(225, 249, 255, .9);
+      box-shadow: 0 0 7px 2px rgba(148, 226, 255, .45);
+      animation: cage-spark 4.2s ease-in-out infinite;
+    }
+
+    .cage-core__spark--1 { left: 23%; top: 28%; animation-delay: -1.2s; }
+    .cage-core__spark--2 { right: 18%; top: 37%; animation-delay: -2.7s; }
+    .cage-core__spark--3 { left: 30%; bottom: 20%; animation-delay: -.4s; }
+
+    @keyframes cage-orbit-outer {
+      from { transform: translate(-50%, -50%) rotate(-8deg); }
+      to { transform: translate(-50%, -50%) rotate(352deg); }
+    }
+
+    @keyframes cage-orbit-inner {
+      from { transform: translate(-50%, -50%) rotateY(62deg) rotate(0deg); }
+      to { transform: translate(-50%, -50%) rotateY(62deg) rotate(360deg); }
+    }
+
+    @keyframes cage-core-breathe {
+      0%, 100% { transform: translate(-50%, -50%) scale(.94) rotate(-2deg); opacity: .78; }
+      50% { transform: translate(-50%, -50%) scale(1.06) rotate(2deg); opacity: 1; }
+    }
+
+    @keyframes cage-spark {
+      0%, 100% { opacity: .18; transform: translateY(8px) scale(.65); }
+      50% { opacity: .9; transform: translateY(-8px) scale(1); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .cage-core__ring,
+      .cage-core__nucleus,
+      .cage-core__spark { animation: none; }
+    }
+
   </style>
   <script>
     // The mirrored renderer expects to boot at the site root. Replacing this
@@ -69,7 +209,7 @@
     // aligned with the bundled *.local-z-v2.js assets; URL query versions are
     // used separately for browser cache busting.
     window._CACHE_ = "local-z-v2";
-    window.UIL_STATIC_PATH = "/active-theory/assets/data/uil.local-z-v2.json";
+    window.UIL_STATIC_PATH = "/active-theory/assets/data/uil.local-z-v2.json?v=lumora-en-v3";
 
     // The mirrored renderer includes a legacy Dreamwave live-control socket.
     // The local Lumora scene does not use that service, so keep its client
@@ -125,8 +265,19 @@
       if (location.hash === "#lumora-agent-use") openLumoraAgent();
     });
     let lastEndState = null;
+    let lastCageCoreState = null;
     setInterval(() => {
       const progress = Number(window.__LUMORA_SOURCE_SCROLL__?.progress || 0);
+      const cageCore = document.querySelector(".cage-core");
+      const cageCoreActive = progress >= 0.707 && progress <= 0.782;
+      if (cageCore) {
+        const cageCoreY = Math.max(29, Math.min(65, 55 - ((progress - 0.725) * 510)));
+        cageCore.style.setProperty("--cage-core-y", `${cageCoreY}%`);
+        if (cageCoreActive !== lastCageCoreState) {
+          cageCore.classList.toggle("is-visible", cageCoreActive);
+          lastCageCoreState = cageCoreActive;
+        }
+      }
       const atEnd = progress >= 0.985;
       if (atEnd === lastEndState) return;
       lastEndState = atEnd;
@@ -136,9 +287,18 @@
       if (String(event.message).includes("Cannot read properties of undefined (reading 'length')")) event.preventDefault();
     });
   </script>
-  <script defer src="/active-theory/assets/js/app.lumora.local-z-v2.js?v=lumora-agent-v8"></script>
+  <script defer src="/active-theory/assets/js/app.lumora.local-z-v2.js?v=lumora-agent-v12"></script>
 </head>
 <body>
-  <noscript>此动态展厅需要启用 JavaScript。</noscript>
+  <div class="cage-core" aria-hidden="true">
+    <span class="cage-core__beam"></span>
+    <span class="cage-core__ring cage-core__ring--outer"></span>
+    <span class="cage-core__ring cage-core__ring--inner"></span>
+    <span class="cage-core__nucleus"></span>
+    <i class="cage-core__spark cage-core__spark--1"></i>
+    <i class="cage-core__spark cage-core__spark--2"></i>
+    <i class="cage-core__spark cage-core__spark--3"></i>
+  </div>
+  <noscript>This interactive experience requires JavaScript.</noscript>
 </body>
 </html>

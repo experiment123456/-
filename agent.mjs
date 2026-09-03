@@ -35,7 +35,7 @@ const tools = [
       parameters: {
         type: "object",
         properties: {
-          topic: { type: "string", enum: ["platform", "aes", "dh", "network", "catalog"] },
+          topic: { type: "string", enum: ["platform", "aes", "dh", "dh_mitm", "dh_protected", "network", "catalog"] },
         },
         required: ["topic"],
         additionalProperties: false,
@@ -55,7 +55,10 @@ const tools = [
             enum: [
               "nav.workbench", "nav.dh", "nav.network", "nav.catalog", "nav.innovation",
               "workbench.algorithms", "workbench.input", "workbench.key", "workbench.run", "workbench.output",
-              "dh.alice", "dh.bob", "dh.exchange", "network.relay", "network.room", "network.connect",
+              "dh.mode.normal", "dh.mode.mitm", "dh.mode.protected", "dh.alice", "dh.eve", "dh.bob",
+              "dh.reveal", "dh.regenerate", "dh.exchange", "dh.copy-secret", "dh.flow", "dh.signature",
+              "dh.demo", "dh.demo.next", "dh.demo.auto", "dh.message.original", "dh.message.modified", "dh.result",
+              "network.relay", "network.room", "network.connect",
               "catalog.grid",
             ],
           },
@@ -76,7 +79,11 @@ const tools = [
         properties: {
           target: {
             type: "string",
-            enum: ["workbench.algorithm.aes", "workbench.sample", "workbench.generate-key", "workbench.run", "dh.reveal", "dh.regenerate", "dh.exchange"],
+            enum: [
+              "workbench.algorithm.aes", "workbench.sample", "workbench.generate-key", "workbench.run",
+              "dh.mode.normal", "dh.mode.mitm", "dh.mode.protected", "dh.reveal", "dh.regenerate",
+              "dh.exchange", "dh.copy-secret", "dh.demo.next", "dh.demo.auto",
+            ],
           },
         },
         required: ["target"],
@@ -88,10 +95,11 @@ const tools = [
     type: "function",
     function: {
       name: "fill_example_text",
-      description: "只向单机实验台输入区域填写非敏感教学示例，不得填写密码、私钥或真实个人信息。",
+      description: "向白名单输入区域填写非敏感教学示例，可用于单机实验台或 DH 中间人攻击的两处演示消息；不得填写密码、私钥或真实个人信息。",
       parameters: {
         type: "object",
         properties: {
+          target: { type: "string", enum: ["workbench.input", "dh.message.original", "dh.message.modified"], default: "workbench.input" },
           text: { type: "string", maxLength: 500 },
         },
         required: ["text"],
@@ -102,9 +110,9 @@ const tools = [
 ];
 
 const systemPrompt = `你是 Lumora Cipher 的中文 AI 密码学导师，也是一个受限网页 Agent。
-你的职责：讲解古典密码、AES-256-GCM、SM2、MD5、Diffie-Hellman 与 WebSocket 双机安全通信，并指导用户使用 Lumora。
+你的职责：讲解古典密码、AES-256-GCM、SM2、MD5、Diffie-Hellman、中间人攻击、ECDSA 签名防护与 WebSocket 双机安全通信，并指导用户使用 Lumora。
 网站页面：home 首页；workbench 单机密码实验；dh DH 密钥交换；network 双机通信；catalog 算法档案；innovation 创新入口；agent AI 导师。
-你可以调用给定工具操作或高亮页面。需要演示时优先且只调用一次 start_guided_tour；它会完成该主题的整套站内引导。必须等待工具结果，工具返回完成后直接总结，不要再次调用同一个演示或把完整演示拆成重复的导航、高亮步骤。
+你可以调用给定工具操作或高亮页面。需要演示时优先且只调用一次 start_guided_tour；普通 DH 使用 dh，中间人攻击使用 dh_mitm，签名防护使用 dh_protected。它会完成对应主题的整套站内引导。必须等待工具结果，工具返回完成后直接总结，不要再次调用同一个演示或把完整演示拆成重复的导航、高亮步骤。
 双机通信的真实端到端连接必须有第二台设备选择相反角色，并使用相同中继地址与房间码。不要承诺在单个浏览器里伪造第二台设备或自动完成真实连接；应完整演示配置入口，并清楚说明用户需要在第二台设备完成的动作。
 运行架构必须准确区分：对话推理来自外部千问 API；页面导航、高亮与密码算法演示由浏览器中的白名单工具在本地执行。用户发送给导师的对话内容会经 Lumora 服务端转发给千问 API，因此不得声称整个导师离线运行、完全不接入外部 API，或所有对话数据永不离开设备。
 当用户询问“接入了什么 API”“使用什么模型”或类似问题时，必须依据下方的当前运行信息直接回答，不得凭空否认、猜测或改写服务商与模型名称。
@@ -186,6 +194,8 @@ function mockResponse(messages) {
   const latest = messages.at(-1);
   if (latest?.role === "tool") return { text: `演示已经完成。${latest.content}。你可以继续问我这一过程背后的算法原理。` };
   const text = [...messages].reverse().find((message) => message.role === "user")?.content || "";
+  if (/签名防护|签名验证|ECDSA|阻止.*中间人/i.test(text)) return { tool: "start_guided_tour", arguments: { topic: "dh_protected" } };
+  if (/中间人|MITM|公钥替换|劫持/i.test(text)) return { tool: "start_guided_tour", arguments: { topic: "dh_mitm" } };
   if (/DH|Diffie|密钥交换/i.test(text)) return { tool: "start_guided_tour", arguments: { topic: "dh" } };
   if (/AES|单机|加密演示/i.test(text)) return { tool: "start_guided_tour", arguments: { topic: "aes" } };
   if (/双机|WebSocket|通信/i.test(text)) return { tool: "start_guided_tour", arguments: { topic: "network" } };

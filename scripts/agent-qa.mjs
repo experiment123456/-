@@ -98,7 +98,25 @@ try {
   results.persistentDock = await page.locator(".agent-dock").isVisible();
   await page.screenshot({ path: join(screenshots, "agent-dh-dock.png"), animations: "disabled" });
 
-  const completionCount = await page.getByText(/演示已经完成/).count();
+  let completionCount = await page.getByText(/演示(?:已经|已)完成/).count();
+  await page.locator(".agent-composer textarea").fill("演示 DH 中间人攻击");
+  await page.locator('.agent-composer button[type="submit"]').click();
+  await page.locator('[data-agent-id="dh.result"][data-agent-state="attack-complete"]').waitFor({ timeout: 12_000 });
+  await page.waitForFunction((before) => [...document.querySelectorAll("p")].filter((node) => /演示(?:已经|已)完成/.test(node.textContent || "")).length > before, completionCount);
+  results.dhMitmAgent = await page.getByText("中间人攻击成功", { exact: true }).isVisible()
+    && await page.locator('[data-agent-id="dh.message.original"]').inputValue() === "Lumora 教学消息：确认会话密钥。"
+    && await page.locator('[data-agent-id="dh.message.modified"]').inputValue() === "Lumora 教学消息：内容已被 Eve 修改。";
+  await page.screenshot({ path: join(screenshots, "agent-dh-mitm.png"), animations: "disabled" });
+
+  completionCount = await page.getByText(/演示(?:已经|已)完成/).count();
+  await page.locator(".agent-composer textarea").fill("演示 DH 签名防护");
+  await page.locator('.agent-composer button[type="submit"]').click();
+  await page.locator('[data-agent-id="dh.result"][data-agent-state="defense-complete"]').waitFor({ timeout: 12_000 });
+  await page.waitForFunction((before) => [...document.querySelectorAll("p")].filter((node) => /演示(?:已经|已)完成/.test(node.textContent || "")).length > before, completionCount);
+  results.dhSignatureAgent = await page.getByText("数字签名成功阻止攻击", { exact: true }).isVisible();
+  await page.screenshot({ path: join(screenshots, "agent-dh-protected.png"), animations: "disabled" });
+
+  completionCount = await page.getByText(/演示(?:已经|已)完成/).count();
   await page.getByRole("button", { name: "带我演示 AES", exact: true }).click();
   await page.waitForURL((url) => url.hash === "#workbench");
   await page.waitForFunction((before) => [...document.querySelectorAll("p")].filter((node) => node.textContent?.includes("演示已经完成")).length > before, completionCount);

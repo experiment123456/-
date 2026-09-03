@@ -64,6 +64,12 @@ try {
   assert.equal(upstreamBody.model, "qwen-qa-model");
   assert.equal(upstreamBody.stream, true);
   assert.equal(Array.isArray(upstreamBody.tools) && upstreamBody.tools.length >= 5, true);
+  const guidedTourTopics = upstreamBody.tools.find((tool) => tool.function?.name === "start_guided_tour")?.function?.parameters?.properties?.topic?.enum || [];
+  const safeDhControls = upstreamBody.tools.find((tool) => tool.function?.name === "activate_control")?.function?.parameters?.properties?.target?.enum || [];
+  const fillTargets = upstreamBody.tools.find((tool) => tool.function?.name === "fill_example_text")?.function?.parameters?.properties?.target?.enum || [];
+  assert.equal(["dh", "dh_mitm", "dh_protected"].every((topic) => guidedTourTopics.includes(topic)), true);
+  assert.equal(["dh.mode.normal", "dh.mode.mitm", "dh.mode.protected", "dh.demo.next", "dh.demo.auto"].every((target) => safeDhControls.includes(target)), true);
+  assert.equal(["dh.message.original", "dh.message.modified"].every((target) => fillTargets.includes(target)), true);
   assert.match(upstreamBody.messages[0].content, /受限网页 Agent/);
   assert.match(upstreamBody.messages[0].content, /阿里云百炼（Model Studio）的 DashScope OpenAI 兼容 API/);
   assert.match(upstreamBody.messages[0].content, /qwen-qa-model/);

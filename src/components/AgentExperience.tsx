@@ -51,7 +51,12 @@ type AgentExperienceProps = {
 
 const quickPrompts = ["带我演示 AES", "讲解 DH 密钥交换", "如何使用双机通信", "查看全部算法"];
 const navigationTargets = new Set<AgentNavigateTarget>(["home", "workbench", "dh", "network", "catalog", "innovation", "agent"]);
-const safeActivations = new Set(["workbench.algorithm.aes", "workbench.sample", "workbench.generate-key", "workbench.run", "dh.reveal", "dh.regenerate", "dh.exchange"]);
+const safeActivations = new Set([
+  "workbench.algorithm.aes", "workbench.sample", "workbench.generate-key", "workbench.run",
+  "dh.mode.normal", "dh.mode.mitm", "dh.mode.protected", "dh.reveal", "dh.regenerate",
+  "dh.exchange", "dh.copy-secret", "dh.demo.next", "dh.demo.auto",
+]);
+const safeInputTargets = new Set(["workbench.input", "dh.message.original", "dh.message.modified"]);
 
 const sleep = (milliseconds: number) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 const dockStorageKey = "lumora-agent-dock-layout-v1";
@@ -132,6 +137,15 @@ async function waitForAgentValue(target: string, timeout = 4_000) {
   while (performance.now() - started < timeout) {
     const element = findAgentElement(target);
     if ((element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) && element.value) return true;
+    await sleep(80);
+  }
+  return false;
+}
+
+async function waitForAgentState(target: string, state: string, timeout = 8_000) {
+  const started = performance.now();
+  while (performance.now() - started < timeout) {
+    if (findAgentElement(target)?.dataset.agentState === state) return true;
     await sleep(80);
   }
   return false;
@@ -299,10 +313,11 @@ export default function AgentExperience({ mode, userId, userName, onNavigate }: 
     return true;
   };
 
-  const fillWorkbenchInput = async (text: string) => {
-    const element = await waitForAgentElement("workbench.input");
-    if (!(element instanceof HTMLTextAreaElement)) return false;
-    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set;
+  const fillAgentInput = async (target: string, text: string) => {
+    const element = await waitForAgentElement(target);
+    if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement)) return false;
+    const prototype = element instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+    const setter = Object.getOwnPropertyDescriptor(prototype, "value")?.set;
     setter?.call(element, text.slice(0, 500));
     element.dispatchEvent(new Event("input", { bubbles: true }));
     return true;
@@ -317,7 +332,7 @@ export default function AgentExperience({ mode, userId, userName, onNavigate }: 
     if (topic === "aes") {
       await navigateAndWait("workbench", "workbench.algorithm.aes");
       await clickControl("workbench.algorithm.aes");
-      await fillWorkbenchInput("Lumora Agent 教学示例：AES-GCM 同时保护机密性与完整性。🔐");
+      await fillAgentInput("workbench.input", "Lumora Agent 教学示例：AES-GCM 同时保护机密性与完整性。🔐");
       await showGuide("workbench.input", "这是明文输入区，我已经填入不含敏感信息的教学示例。", 2_000);
       await sleep(850);
       await showGuide("workbench.key", "这里是 AES 密钥材料。真实使用时不要向任何 AI 发送密钥。", 2_000);
@@ -327,8 +342,33 @@ export default function AgentExperience({ mode, userId, userName, onNavigate }: 
       await showGuide("workbench.output", "加密结果已经生成；AES-GCM 还会验证内容是否被篡改。", 3_400);
       return generated ? "已完成 AES 教学示例、执行加密并高亮结果" : "已执行 AES 教学示例，但结果区尚未完成更新";
     }
+    if (topic === "dh_mitm") {
+      await navigateAndWait("dh", "dh.mode.mitm");
+      await clickControl("dh.mode.mitm");
+      await showGuide("dh.eve", "Eve 位于通信路径中间，会截获并替换 Alice 与 Bob 的 DH 公钥。", 2_200);
+      await sleep(900);
+      await fillAgentInput("dh.message.original", "Lumora 教学消息：确认会话密钥。");
+      await fillAgentInput("dh.message.modified", "Lumora 教学消息：内容已被 Eve 修改。");
+      await showGuide("dh.demo", "这里会使用真实 DH 派生密钥和 AES-GCM 模拟截获、解密、修改与转发。", 2_200);
+      await sleep(800);
+      await clickControl("dh.demo.auto");
+      const completed = await waitForAgentState("dh.result", "attack-complete");
+      await showGuide("dh.result", "Alice 和 Bob 看似通信正常，但实际分别与 Eve 建立了不同的共享密钥。", 3_400);
+      return completed ? "已完成 DH 中间人攻击演示并展示消息被截获和修改的结果" : "已启动 DH 中间人攻击演示，结果仍在计算";
+    }
+    if (topic === "dh_protected") {
+      await navigateAndWait("dh", "dh.mode.protected");
+      await clickControl("dh.mode.protected");
+      await showGuide("dh.signature", "数字签名把身份、会话编号与临时 DH 公钥绑定，用来识别公钥替换。", 2_200);
+      await sleep(900);
+      await clickControl("dh.demo.auto");
+      const completed = await waitForAgentState("dh.result", "defense-complete");
+      await showGuide("dh.result", "Eve 无法伪造可信签名，替换后的公钥验证失败，交换被阻止。", 3_400);
+      return completed ? "已完成 DH 签名防护演示并成功阻止中间人攻击" : "已启动 DH 签名防护演示，结果仍在计算";
+    }
     if (topic === "dh") {
-      await navigateAndWait("dh", "dh.alice");
+      await navigateAndWait("dh", "dh.mode.normal");
+      await clickControl("dh.mode.normal");
       await showGuide("dh.alice", "Alice 在本地保存私钥，只公开公钥。", 1_900);
       await sleep(900);
       await showGuide("dh.bob", "Bob 同样独立生成密钥对，双方不传输私钥。", 1_900);
@@ -366,8 +406,14 @@ export default function AgentExperience({ mode, userId, userName, onNavigate }: 
         if (!safeActivations.has(args.target)) return `拒绝非白名单控件：${args.target}`;
         return await clickControl(args.target) ? `已安全点击 ${args.target}` : `没有找到或不允许点击 ${args.target}`;
       case "fill_example_text":
-        if (location.hash !== "#workbench") await navigateAndWait("workbench", "workbench.input");
-        return await fillWorkbenchInput(args.text || "") ? "已填写非敏感教学示例" : "未找到单机实验输入区";
+        if (!safeInputTargets.has(args.target || "workbench.input")) return "拒绝向非白名单输入区填写内容";
+        if ((args.target || "workbench.input") === "workbench.input" && location.hash !== "#workbench") await navigateAndWait("workbench", "workbench.input");
+        if ((args.target || "").startsWith("dh.message.") && location.hash !== "#dh") await navigateAndWait("dh", "dh.mode.mitm");
+        if ((args.target || "").startsWith("dh.message.") && !findAgentElement(args.target)) {
+          await clickControl("dh.mode.mitm");
+          await waitForAgentElement(args.target);
+        }
+        return await fillAgentInput(args.target || "workbench.input", args.text || "") ? "已填写非敏感教学示例" : "未找到指定输入区";
       case "start_guided_tour":
         return await runTour(args.topic);
       default:

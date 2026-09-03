@@ -199,7 +199,7 @@ export default function DhView() {
   };
 
   const partyCard = (name: string, caption: string, party: DhParty, secret: string, secretLabel = "DERIVED KEY / SHA-256 共享密钥") => (
-    <article className="workspace-card dh-party-card rounded-[28px] p-5 sm:p-6">
+    <article className="workspace-card dh-party-card rounded-[28px] p-5 sm:p-6" data-agent-id={`dh.${name.toLowerCase()}`}>
       <div className="flex items-center justify-between">
         <div>
           <p className="eyebrow">{caption}</p>
@@ -244,16 +244,16 @@ export default function DhView() {
           <h1 className="mt-2 text-4xl sm:text-5xl">Diffie–Hellman <span className="italic">Lab</span></h1>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-white/55">{modeDescription}</p>
           <div className="segmented dh-mode-switch mt-5" aria-label="DH实验模式">
-            <button type="button" className={mode === "normal" ? "is-active" : ""} onClick={() => selectMode("normal")}>正常交换</button>
-            <button type="button" className={mode === "mitm" ? "is-active" : ""} onClick={() => selectMode("mitm")}>中间人攻击</button>
-            <button type="button" className={mode === "protected" ? "is-active" : ""} onClick={() => selectMode("protected")}>签名防护</button>
+            <button data-agent-id="dh.mode.normal" type="button" className={mode === "normal" ? "is-active" : ""} onClick={() => selectMode("normal")}>正常交换</button>
+            <button data-agent-id="dh.mode.mitm" type="button" className={mode === "mitm" ? "is-active" : ""} onClick={() => selectMode("mitm")}>中间人攻击</button>
+            <button data-agent-id="dh.mode.protected" type="button" className={mode === "protected" ? "is-active" : ""} onClick={() => selectMode("protected")}>签名防护</button>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button className="secondary-button" type="button" onClick={() => setReveal((value) => !value)}>
+          <button className="secondary-button" data-agent-id="dh.reveal" type="button" onClick={() => setReveal((value) => !value)}>
             {reveal ? <EyeOff /> : <Eye />} {reveal ? "隐藏完整值" : "显示完整值"}
           </button>
-          <button className="secondary-button" type="button" onClick={regenerate}><RefreshCw />重新生成</button>
+          <button className="secondary-button" data-agent-id="dh.regenerate" type="button" onClick={regenerate}><RefreshCw />重新生成</button>
         </div>
       </header>
 
@@ -274,7 +274,7 @@ export default function DhView() {
                     {matched ? `会话指纹：${aliceSecret.slice(0, 12).toUpperCase()} · ${aliceSecret.slice(-12).toUpperCase()}` : "点击右侧按钮模拟两台设备的完整 DH 交换与 SHA-256 派生。"}
                   </p>
                 </div>
-                {matched && <button className="icon-button ml-auto" type="button" onClick={() => void navigator.clipboard.writeText(aliceSecret)} title="复制共享密钥"><Copy /></button>}
+                {matched && <button className="icon-button ml-auto" data-agent-id="dh.copy-secret" type="button" onClick={() => void navigator.clipboard.writeText(aliceSecret)} title="复制共享密钥"><Copy /></button>}
               </div>
             </div>
             <button className="primary-button min-w-52" type="button" onClick={() => void exchange()} disabled={busy}>
@@ -286,7 +286,7 @@ export default function DhView() {
         <>
           <div className={`dh-actor-grid mt-7 ${mode === "protected" ? "is-protected" : "is-attacking"}`}>
             {partyCard("Alice", "SENDER / 发送方", alice, mitmSecrets.aliceSecret, "SESSION KEY / Alice ↔ Eve")}
-            <article className={`workspace-card dh-party-card dh-eve-card rounded-[28px] p-5 sm:p-6 ${step >= 2 ? "is-intercepting" : ""} ${defenseBlocked ? "is-blocked" : ""}`}>
+            <article className={`workspace-card dh-party-card dh-eve-card rounded-[28px] p-5 sm:p-6 ${step >= 2 ? "is-intercepting" : ""} ${defenseBlocked ? "is-blocked" : ""}`} data-agent-id="dh.eve">
               <div className="flex items-center justify-between">
                 <div><p className="eyebrow">ATTACKER / 中间人</p><h2 className="mt-1 text-3xl italic">Eve</h2></div>
                 <span className={`connection-orb ${step >= 2 ? "is-danger" : ""}`} />
@@ -300,10 +300,10 @@ export default function DhView() {
             {partyCard("Bob", "RECEIVER / 接收方", bob, mitmSecrets.bobSecret, "SESSION KEY / Eve ↔ Bob")}
           </div>
 
-          <div className="dh-flow-line mt-4" aria-label="公钥传递路径"><span>Alice公钥</span><ArrowRight /><strong>{step >= 2 ? "Eve截获并替换" : "等待传输"}</strong><ArrowRight /><span>Bob</span></div>
+          <div className="dh-flow-line mt-4" data-agent-id="dh.flow" aria-label="公钥传递路径"><span>Alice公钥</span><ArrowRight /><strong>{step >= 2 ? "Eve截获并替换" : "等待传输"}</strong><ArrowRight /><span>Bob</span></div>
 
           {mode === "protected" && (
-            <section className={`dh-signature-panel mt-4 rounded-[24px] p-5 ${defenseBlocked ? "is-blocked" : ""}`}>
+            <section className={`dh-signature-panel mt-4 rounded-[24px] p-5 ${defenseBlocked ? "is-blocked" : ""}`} data-agent-id="dh.signature">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex items-start gap-4">
                   <div className="verification-icon">{defenseBlocked ? <CircleX /> : <LockKeyhole />}</div>
@@ -315,13 +315,13 @@ export default function DhView() {
             </section>
           )}
 
-          <section className="workspace-card dh-demo-console mt-4 rounded-[26px] p-5 sm:p-6">
+          <section className="workspace-card dh-demo-console mt-4 rounded-[26px] p-5 sm:p-6" data-agent-id="dh.demo">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div><p className="eyebrow">INTERACTIVE TRACE / 交互演示</p><h2 className="mt-1 text-2xl italic">{mode === "mitm" ? "Message interception" : "Authenticated exchange"}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-white/45">{mode === "mitm" ? "使用真实DH派生密钥与AES-GCM完成截获、解密、修改和转发。" : "使用真实ECDSA签名验证被替换的DH公开参数。"}</p></div>
-              <div className="flex flex-wrap gap-2"><button className="secondary-button" type="button" disabled={nextDisabled} onClick={() => void nextStep()}><StepForward />下一步</button><button className="primary-button" type="button" disabled={busy} onClick={() => void autoDemo()}><Play />{busy ? "演示进行中…" : "一键演示"}</button></div>
+              <div className="flex flex-wrap gap-2"><button className="secondary-button" data-agent-id="dh.demo.next" type="button" disabled={nextDisabled} onClick={() => void nextStep()}><StepForward />下一步</button><button className="primary-button" data-agent-id="dh.demo.auto" type="button" disabled={busy} onClick={() => void autoDemo()}><Play />{busy ? "演示进行中…" : "一键演示"}</button></div>
             </div>
 
-            {mode === "mitm" && <div className="dh-message-editor mt-5"><label className="field-label"><span>ALICE MESSAGE / 原始消息</span><textarea className="field-control" rows={2} value={originalMessage} onChange={(event) => setOriginalMessage(event.target.value)} disabled={busy} /></label><label className="field-label"><span>EVE MODIFICATION / 篡改内容</span><textarea className="field-control" rows={2} value={modifiedMessage} onChange={(event) => setModifiedMessage(event.target.value)} disabled={busy} /></label></div>}
+            {mode === "mitm" && <div className="dh-message-editor mt-5"><label className="field-label"><span>ALICE MESSAGE / 原始消息</span><textarea className="field-control" data-agent-id="dh.message.original" rows={2} value={originalMessage} onChange={(event) => setOriginalMessage(event.target.value)} disabled={busy} /></label><label className="field-label"><span>EVE MODIFICATION / 篡改内容</span><textarea className="field-control" data-agent-id="dh.message.modified" rows={2} value={modifiedMessage} onChange={(event) => setModifiedMessage(event.target.value)} disabled={busy} /></label></div>}
 
             <div className="dh-trace-grid mt-5">
               <div className="dh-event-log"><div className="flex items-center gap-2 text-sm text-white/65"><MessageSquareText className="h-4 w-4" />过程日志</div><ol className="mt-3 space-y-2" aria-live="polite">{events.length ? events.map((event, index) => <li key={`${index}-${event}`}><span>{index + 1}</span><p>{event}</p></li>) : <li className="is-empty"><span>0</span><p>点击“下一步”逐步观察，或使用“一键演示”。</p></li>}</ol></div>
@@ -331,7 +331,7 @@ export default function DhView() {
             </div>
           </section>
 
-          <div className={`verification-card dh-result-card mt-4 rounded-[24px] p-5 ${attackFinished ? "is-attacked" : ""} ${defenseBlocked ? "is-verified" : ""}`}><div className="flex items-start gap-4"><div className="verification-icon">{attackFinished ? <ShieldAlert /> : defenseBlocked ? <ShieldCheck /> : <AlertTriangle />}</div><div><p className="text-lg">{attackFinished ? "中间人攻击成功" : defenseBlocked ? "数字签名成功阻止攻击" : "等待开始安全实验"}</p><p className="mt-1 text-sm leading-6 text-white/45">{attackFinished ? "Alice和Bob都能正常通信，但实际分别与Eve共享不同密钥，双方不会仅凭DH发现攻击。" : defenseBlocked ? "被替换的DH公钥无法通过可信签名公钥验证，系统没有生成任何受攻击的会话密钥。" : "整个实验只在当前浏览器内模拟三个角色，不连接房间或真实设备。"}</p></div></div></div>
+          <div className={`verification-card dh-result-card mt-4 rounded-[24px] p-5 ${attackFinished ? "is-attacked" : ""} ${defenseBlocked ? "is-verified" : ""}`} data-agent-id="dh.result" data-agent-state={attackFinished ? "attack-complete" : defenseBlocked ? "defense-complete" : "idle"}><div className="flex items-start gap-4"><div className="verification-icon">{attackFinished ? <ShieldAlert /> : defenseBlocked ? <ShieldCheck /> : <AlertTriangle />}</div><div><p className="text-lg">{attackFinished ? "中间人攻击成功" : defenseBlocked ? "数字签名成功阻止攻击" : "等待开始安全实验"}</p><p className="mt-1 text-sm leading-6 text-white/45">{attackFinished ? "Alice和Bob都能正常通信，但实际分别与Eve共享不同密钥，双方不会仅凭DH发现攻击。" : defenseBlocked ? "被替换的DH公钥无法通过可信签名公钥验证，系统没有生成任何受攻击的会话密钥。" : "整个实验只在当前浏览器内模拟三个角色，不连接房间或真实设备。"}</p></div></div></div>
         </>
       )}
 

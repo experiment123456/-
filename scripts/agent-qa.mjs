@@ -35,8 +35,8 @@ try {
   browser = await chromium.launch({ ...browserLocation(), headless: true });
   const guestPage = await browser.newPage({ viewport: { width: 1440, height: 960 } });
   await guestPage.goto(`${base}#innovation`, { waitUntil: "domcontentloaded" });
-  await guestPage.getByRole("heading", { name: "AI 创新界面" }).waitFor();
-  await guestPage.getByRole("button", { name: "启动智能导师", exact: true }).click();
+  await guestPage.getByRole("heading", { name: "AI 智能导师" }).waitFor();
+  await guestPage.getByRole("button", { name: "进入 AI 导师", exact: true }).click({ force: true });
   await guestPage.locator(".agent-showcase-frame").waitFor();
   results.guestAgentNoLogin = guestPage.url().endsWith("#agent")
     && await guestPage.locator(".auth-card").count() === 0;
@@ -63,9 +63,9 @@ try {
   await page.getByRole("button", { name: "打开账户中心" }).waitFor();
 
   await page.getByRole("button", { name: "AI 创新", exact: true }).click();
-  await page.getByRole("heading", { name: "AI 创新界面" }).waitFor();
+  await page.getByRole("heading", { name: "AI 智能导师" }).waitFor();
   results.innovationEntry = page.url().endsWith("#innovation");
-  await page.getByRole("button", { name: "启动智能导师", exact: true }).click();
+  await page.getByRole("button", { name: "进入 AI 导师", exact: true }).click({ force: true });
   await page.locator(".agent-showcase-frame").waitFor();
   results.studioRoute = page.url().endsWith("#agent");
   results.sourceShowcase = await page.locator(".agent-showcase-frame").isVisible();

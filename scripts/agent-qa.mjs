@@ -66,6 +66,12 @@ try {
   const sourceFrame = await sourceFrameHandle?.contentFrame();
   assert.ok(sourceFrame, "Active Theory source frame did not load");
   await sourceFrame.waitForFunction(() => Boolean(window.__LUMORA_SOURCE_SCROLL__), null, { timeout: 20_000 });
+  const sourceUrlBeforeClick = sourceFrame.url();
+  const sourceFrameBox = await page.locator(".agent-showcase-frame").boundingBox();
+  assert.ok(sourceFrameBox, "Active Theory source frame has no clickable bounds");
+  await page.mouse.click(sourceFrameBox.x + sourceFrameBox.width / 2, sourceFrameBox.y + sourceFrameBox.height / 2);
+  await page.waitForTimeout(400);
+  results.sourceClickStaysPut = page.url().endsWith("#agent") && sourceFrame.url() === sourceUrlBeforeClick;
   await page.mouse.move(720, 480);
   for (let index = 0; index < 42; index += 1) {
     await page.mouse.wheel(0, 1_100);

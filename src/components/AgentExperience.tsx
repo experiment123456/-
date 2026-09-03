@@ -742,7 +742,7 @@ export default function AgentExperience({ mode, userId, userName, onNavigate }: 
         <iframe
           ref={sourceFrameRef}
           className="agent-showcase-frame"
-          src="/active-theory/frame.html?v=lumora-agent-v13"
+          src="/active-theory/frame.html?v=lumora-agent-v14"
           title="Lumora Agent 动态作品空间"
           sandbox="allow-scripts allow-same-origin"
         />

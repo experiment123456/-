@@ -255,11 +255,47 @@
     })();
 
     const openLumoraAgent = () => parent.postMessage({ type: "lumora:open-agent" }, location.origin);
-    document.addEventListener("click", (event) => {
-      const link = event.target instanceof Element ? event.target.closest("a") : null;
-      if (!link || new URL(link.href, location.href).hash !== "#lumora-agent-use") return;
+    const isAgentEntry = (target) => {
+      const link = target?.closest?.("a");
+      return Boolean(link && new URL(link.href, location.href).hash === "#lumora-agent-use");
+    };
+    const isShowcaseSurface = (target) => Boolean(target?.closest?.("#Stage, .FXScroll, canvas"));
+    let showcasePress = null;
+    document.addEventListener("pointerdown", (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      if (!isShowcaseSurface(target) || isAgentEntry(target)) return;
+      showcasePress = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    }, true);
+    document.addEventListener("pointerup", (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      if (!showcasePress || showcasePress.id !== event.pointerId || isAgentEntry(target)) {
+        showcasePress = null;
+        return;
+      }
+      const distance = Math.hypot(event.clientX - showcasePress.x, event.clientY - showcasePress.y);
+      showcasePress = null;
+      if (distance > 8 || !isShowcaseSurface(target)) return;
       event.preventDefault();
-      openLumoraAgent();
+      event.stopImmediatePropagation();
+    }, true);
+    document.addEventListener("click", (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      const link = target?.closest("a");
+      if (link && new URL(link.href, location.href).hash === "#lumora-agent-use") {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        openLumoraAgent();
+        return;
+      }
+
+      // The mirrored showcase still contains its original project routes.
+      // In Lumora those routes resolve to the host SPA and fall through to its
+      // login view. Keep the canvas hover and scroll interactions, but make a
+      // plain click on the 3D scene intentionally stay on the current page.
+      if (target?.closest("#Stage, canvas")) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
     }, true);
     addEventListener("hashchange", () => {
       if (location.hash === "#lumora-agent-use") openLumoraAgent();
@@ -290,6 +326,9 @@
   <script defer src="/active-theory/assets/js/app.lumora.local-z-v2.js?v=lumora-agent-v12"></script>
 </head>
 <body>
+  <!-- The host App owns the single persistent background-music player. The
+       mirrored showcase checks for this marker and skips its legacy playlist. -->
+  <audio id="homepage-autoplay-audio" aria-hidden="true" hidden></audio>
   <div class="cage-core" aria-hidden="true">
     <span class="cage-core__beam"></span>
     <span class="cage-core__ring cage-core__ring--outer"></span>

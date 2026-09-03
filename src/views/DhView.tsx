@@ -237,7 +237,7 @@ export default function DhView() {
   const nextDisabled = busy || (mode === "mitm" ? step >= 5 : step >= 3);
 
   return (
-    <div className="app-panel panel-reveal soft-scroll h-full min-h-0 overflow-y-auto rounded-[30px] p-5 sm:p-7 lg:p-9">
+    <div className="app-panel panel-reveal soft-scroll h-full min-h-0 w-full overflow-y-auto rounded-[30px] p-5 sm:h-[96%] sm:w-[96%] sm:p-7 lg:p-9">
       <header className="flex flex-col gap-5 2xl:flex-row 2xl:items-end 2xl:justify-between">
         <div>
           <p className="eyebrow">KEY EXCHANGE / 02</p>

@@ -463,7 +463,7 @@ function App() {
         ) : view === "login" ? (
           <AuthView onAuthenticated={authenticated} />
         ) : (
-          <main className="min-h-0 flex-1 py-3 sm:py-5">
+          <main className={`min-h-0 flex-1 py-3 sm:py-5 ${view === "dh" ? "flex items-center justify-center" : ""}`}>
             {view === "workbench" && <WorkbenchView />}
             {view === "dh" && <DhView />}
             {view === "network" && <NetworkView />}

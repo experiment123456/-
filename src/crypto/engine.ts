@@ -799,6 +799,61 @@ export function sm2Decrypt(payload: string, privateKeyValue: string): string {
   return decodeUtf8(message);
 }
 
+// —— SM2 数字签名（GM/T 0003.2）—— 供图片水印取证复用，不影响既有 SM2 加解密。
+const SM2_DEFAULT_ID = "1234567812345678";
+
+function sm2IdentityHash(publicKey: Point, userId: string): Uint8Array {
+  const idBytes = utf8(userId);
+  const entl = new Uint8Array(2);
+  new DataView(entl.buffer).setUint16(0, idBytes.length * 8, false);
+  return sm3(concatBytes(entl, idBytes, bigintToBytes(SM2_A), bigintToBytes(SM2_B), bigintToBytes(SM2_GX), bigintToBytes(SM2_GY), bigintToBytes(publicKey.x), bigintToBytes(publicKey.y)));
+}
+
+function sm2DigestValue(message: string, publicKey: Point, userId: string): bigint {
+  const za = sm2IdentityHash(publicKey, userId);
+  const digest = sm3(concatBytes(za, utf8(message)));
+  return BigInt(`0x${bytesToHex(digest)}`);
+}
+
+// 返回 r||s 的 128 位十六进制字符串。
+export function sm2Sign(message: string, privateKeyValue: string, userId: string = SM2_DEFAULT_ID): string {
+  const keyPair = parseSm2Key(privateKeyValue);
+  const privateKey = BigInt(`0x${keyPair.private}`);
+  const publicKey: Point = { x: BigInt(`0x${keyPair.public.x}`), y: BigInt(`0x${keyPair.public.y}`) };
+  const e = sm2DigestValue(message, publicKey, userId);
+  for (let attempt = 0; attempt < 16; attempt += 1) {
+    const k = randomScalar(SM2_N);
+    const point = scalarMultiply(k, SM2_G);
+    if (!point) continue;
+    const r = modulo(e + point.x, SM2_N);
+    if (r === 0n || r + k === SM2_N) continue;
+    const s = modulo(inverse(1n + privateKey, SM2_N) * (k - r * privateKey), SM2_N);
+    if (s === 0n) continue;
+    return `${r.toString(16).padStart(64, "0")}${s.toString(16).padStart(64, "0")}`;
+  }
+  throw new Error("SM2 签名失败，请重试");
+}
+
+export function sm2Verify(message: string, signatureHex: string, publicKeyValue: string, userId: string = SM2_DEFAULT_ID): boolean {
+  const clean = signatureHex.replace(/\s+/g, "");
+  if (!/^[0-9a-f]{128}$/i.test(clean)) return false;
+  const r = BigInt(`0x${clean.slice(0, 64)}`);
+  const s = BigInt(`0x${clean.slice(64)}`);
+  if (r < 1n || r >= SM2_N || s < 1n || s >= SM2_N) return false;
+  let publicKey: Point;
+  try {
+    publicKey = parseSm2Public(publicKeyValue);
+  } catch {
+    return false;
+  }
+  const e = sm2DigestValue(message, publicKey, userId);
+  const t = modulo(r + s, SM2_N);
+  if (t === 0n) return false;
+  const point = pointAdd(scalarMultiply(s, SM2_G), scalarMultiply(t, publicKey));
+  if (!point) return false;
+  return modulo(e + point.x, SM2_N) === r;
+}
+
 const DH_P = BigInt(
   "0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3BE39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF6955817183995497CEA956AE515D2261898FA051015728E5A8AACAA68FFFFFFFFFFFFFFFF",
 );

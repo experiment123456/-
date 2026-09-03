@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import JellyfishField from "../components/JellyfishField";
 
-type InnovationTarget = "home" | "workbench";
+type InnovationTarget = "home" | "workbench" | "ocean";
 type InnovationViewProps = {
   onNavigate: (target: InnovationTarget) => void;
   musicPlaying: boolean;
@@ -33,17 +33,17 @@ type BubbleStyle = CSSProperties & {
   "--bubble-opacity": string;
 };
 
-const navItems = ["首页", "功能", "组件", "关于", "联系"] as const;
+const navItems = ["首页", "功能", "图片实验", "关于", "联系"] as const;
 type NavItem = typeof navItems[number];
+type LocalSection = Exclude<NavItem, "首页" | "图片实验">;
 
 const oceanGlassStyle: CSSProperties = {
   backdropFilter: "blur(13px) saturate(155%)",
   WebkitBackdropFilter: "blur(13px) saturate(155%)",
 };
 
-const sectionDetails: Record<Exclude<NavItem, "首页">, { label: string; description: string; value: string }> = {
+const sectionDetails: Record<LocalSection, { label: string; description: string; value: string }> = {
   功能: { label: "LIVING OCEAN SYSTEM", description: "动态焦散、液态阴影与环境粒子共同构成持续呼吸的数字海域。", value: "06 LAYERS" },
-  组件: { label: "MODULAR GLASS FIELD", description: "背景、玻璃面板、气泡与水母行为彼此独立，保持流畅与可维护。", value: "04 MODULES" },
   关于: { label: "EXPERIMENTAL SURFACE", description: "把密码实验平台的未来感延伸成更柔和、更明亮的海洋交互概念。", value: "AQUA / 01" },
   联系: { label: "SIGNAL CHANNEL", description: "概念通道已开放，等待下一项功能、内容与交互方向接入。", value: "ONLINE" },
 };
@@ -153,12 +153,13 @@ function OceanBackground() {
 }
 
 export default function InnovationView({ onNavigate, musicPlaying, musicNeedsAction, onToggleMusic }: InnovationViewProps) {
-  const [activeSection, setActiveSection] = useState<Exclude<NavItem, "首页">>("功能");
+  const [activeSection, setActiveSection] = useState<LocalSection>("功能");
   const [immersive, setImmersive] = useState(false);
   const detail = sectionDetails[activeSection];
 
   const selectSection = (item: NavItem) => {
     if (item === "首页") onNavigate("home");
+    else if (item === "图片实验") onNavigate("ocean");
     else setActiveSection(item);
   };
 

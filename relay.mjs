@@ -5,6 +5,31 @@ import { WebSocketServer, WebSocket } from "ws";
 export const RELAY_PROTOCOL_VERSION = 2;
 const wireTypes = new Set(["dh-public", "sm2-public", "algorithm-proposal", "algorithm-accept", "chat", "file"]);
 
+// 图片安全实验室的匿名遥测频道：只承载统计与事件类型，服务端再次裁剪，
+// 即使客户端误传明文/密钥/图片也会被丢弃。与房间转发完全独立。
+const telemetryTypes = new Set([
+  "session.online", "redaction.completed", "watermark.issued", "watermark.traced",
+  "stego.embed", "stego.detect", "orchestrator.decision", "integrity.alert",
+]);
+
+function sanitizeTelemetry(event) {
+  if (!event || typeof event !== "object" || !telemetryTypes.has(event.type)) return null;
+  const num = (value) => (typeof value === "number" && Number.isFinite(value) ? value : 0);
+  const str = (value, max = 48) => (typeof value === "string" ? value.slice(0, max) : "");
+  const clean = { type: event.type };
+  switch (event.type) {
+    case "session.online": clean.sessionId = str(event.sessionId, 36); break;
+    case "redaction.completed": clean.regions = num(event.regions); clean.bytes = num(event.bytes); break;
+    case "watermark.issued": clean.watermarkId = str(event.watermarkId); break;
+    case "watermark.traced": clean.watermarkId = str(event.watermarkId); clean.verified = Boolean(event.verified); break;
+    case "stego.embed": clean.psnr = num(event.psnr); clean.capacityUsed = num(event.capacityUsed); break;
+    case "stego.detect": clean.score = num(event.score); break;
+    case "orchestrator.decision": clean.strategy = str(event.strategy); break;
+    case "integrity.alert": clean.module = str(event.module); break;
+  }
+  return clean;
+}
+
 function send(socket, payload) {
   if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(payload));
 }
@@ -31,6 +56,8 @@ export function attachRelay(httpServer) {
   if (httpServer.__lumoraRelay) return httpServer.__lumoraRelay;
   // A room belongs to one relay instance, not every server in this Node process.
   const rooms = new Map();
+  // 遥测订阅者与房间成员相互独立，一个连接可以只订阅大屏而不加入任何房间。
+  const telemetrySubscribers = new Set();
   const wss = new WebSocketServer({ noServer: true, maxPayload: 64 * 1024 * 1024 });
   wss.serverId = randomUUID();
   httpServer.__lumoraRelay = wss;
@@ -60,7 +87,7 @@ export function attachRelay(httpServer) {
   httpServer.on("upgrade", upgrade);
   const heartbeat = setInterval(() => {
     for (const socket of wss.clients) {
-      if (!socket.isAlive) { leave(socket); socket.terminate(); continue; }
+      if (!socket.isAlive) { telemetrySubscribers.delete(socket); leave(socket); socket.terminate(); continue; }
       socket.isAlive = false;
       socket.ping();
     }
@@ -101,6 +128,19 @@ export function attachRelay(httpServer) {
         return;
       }
       if (message.type === "leave") { leave(socket); return; }
+      if (message.type === "telemetry-subscribe") {
+        telemetrySubscribers.add(socket);
+        send(socket, { type: "telemetry-ready", serverId: wss.serverId });
+        return;
+      }
+      if (message.type === "telemetry-unsubscribe") { telemetrySubscribers.delete(socket); return; }
+      if (message.type === "telemetry") {
+        const event = sanitizeTelemetry(message.event);
+        if (!event) { send(socket, { type: "error", message: "无效的遥测事件" }); return; }
+        const forwarded = { type: "telemetry", event, serverTime: Date.now() };
+        telemetrySubscribers.forEach((client) => send(client, forwarded));
+        return;
+      }
       if (!socket.room) { send(socket, { type: "error", message: "请先加入房间" }); return; }
       if (!wireTypes.has(message.type)) { send(socket, { type: "error", message: "不支持的消息类型" }); return; }
       if (["chat", "file", "algorithm-proposal"].includes(message.type) && socket.role !== "encryptor") {
@@ -115,8 +155,8 @@ export function attachRelay(httpServer) {
       members.forEach((client) => { if (client !== socket) send(client, forwarded); });
       send(socket, { type: "delivered", messageType: message.type, clientTag: message.clientTag });
     });
-    socket.on("close", () => leave(socket));
-    socket.on("error", () => leave(socket));
+    socket.on("close", () => { telemetrySubscribers.delete(socket); leave(socket); });
+    socket.on("error", () => { telemetrySubscribers.delete(socket); leave(socket); });
   });
   return wss;
 }

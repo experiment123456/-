@@ -9,9 +9,12 @@ import WorkbenchView from "./views/WorkbenchView";
 import AccountView from "./views/AccountView";
 import AuthView from "./views/AuthView";
 import InnovationView from "./views/InnovationView";
+import ImageLabView from "./views/ImageLabView";
+import OceanDashboard from "./views/OceanDashboard";
 
 type LabView = "workbench" | "dh" | "network" | "catalog" | "innovation";
-type AppView = "home" | LabView | "login" | "account";
+type ModuleView = "image-lab" | "ocean";
+type AppView = "home" | LabView | ModuleView | "login" | "account";
 
 const videos = [
   { label: "Golden Hour", src: "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260702_081127_0992a171-d3c6-4978-8213-0ec5df8b6d63.mp4" },
@@ -32,7 +35,7 @@ const uiFont: CSSProperties = { fontFamily: "system-ui, sans-serif" };
 
 function viewFromHash(): AppView {
   const value = location.hash.replace(/^#\/?/, "") as AppView;
-  return ["workbench", "dh", "network", "catalog", "innovation", "login", "account"].includes(value) ? value : "login";
+  return ["workbench", "dh", "network", "catalog", "innovation", "image-lab", "ocean", "login", "account"].includes(value) ? value : "login";
 }
 
 function App() {
@@ -65,6 +68,9 @@ function App() {
   const settings = user?.settings ?? { backgroundAutoplay: true, ripplesEnabled: true, reducedMotion: false };
   const isLoginView = view === "login";
   const isInnovationView = view === "innovation";
+  const isImageLab = view === "image-lab";
+  const isOcean = view === "ocean";
+  const isModuleView = isImageLab || isOcean;
 
   const playLoginVideo = useCallback((video: HTMLVideoElement, withSound: boolean) => {
     const request = ++loginRequestRef.current;
@@ -138,7 +144,7 @@ function App() {
   useEffect(() => {
     videoRefs.current.forEach((video, index) => {
       if (!video) return;
-      if (view !== "login" && view !== "innovation" && index === activeVideo) void video.play().catch(() => undefined);
+      if (!["login", "innovation", "ocean", "image-lab"].includes(view) && index === activeVideo) void video.play().catch(() => undefined);
       else video.pause();
     });
   }, [activeVideo, view]);
@@ -263,6 +269,27 @@ function App() {
     <section id="app-scene" className={`relative h-[100svh] w-full overflow-hidden bg-black text-white ${settings.reducedMotion ? "motion-reduced" : ""}`}>
       {isInnovationView ? (
         <div className="absolute inset-0 z-0 bg-[#06404b]" aria-hidden="true" />
+      ) : isModuleView ? (
+        <div className="absolute inset-0 z-0" aria-hidden="true">
+          <div className="absolute inset-0" style={{ background: "radial-gradient(120% 120% at 50% 0%, #043047 0%, #021428 62%, #010c18 100%)" }} />
+          {isImageLab && !settings.reducedMotion && (
+            <video
+              className="il-bg-video"
+              autoPlay
+              muted
+              loop
+              playsInline
+              poster="/assets/image-lab/lab-ambient-poster.jpg"
+              src="/assets/image-lab/lab-ambient-loop.mp4"
+            />
+          )}
+          {isImageLab && (
+            <>
+              <div className="cinematic-wash absolute inset-0" />
+              <div className="film-grain absolute inset-0" />
+            </>
+          )}
+        </div>
       ) : isLoginView ? (
         <>
           <div className="absolute inset-0 z-0 bg-[#01070d]" aria-hidden="true" />
@@ -342,6 +369,11 @@ function App() {
             musicNeedsAction={homeMusicNeedsAction}
             onToggleMusic={toggleHomeMusic}
           />
+        </div>
+      ) : isModuleView ? (
+        <div className="absolute inset-0 z-[3] overflow-y-auto">
+          {isImageLab && <ImageLabView onNavigate={navigate} />}
+          {isOcean && <OceanDashboard onNavigate={navigate} />}
         </div>
       ) : (
       <div className="relative z-[3] flex h-full flex-col px-4 py-4 sm:px-7 sm:py-6 lg:px-10 lg:py-7 xl:px-14">

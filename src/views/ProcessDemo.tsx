@@ -102,7 +102,7 @@ export default function ProcessDemo({ algorithm, algorithmName, mode, input, key
   const step = steps[current];
 
   return (
-    <div className="workspace-card mt-4 rounded-3xl p-4 sm:p-5">
+    <div className="workspace-card mt-4 rounded-3xl p-4 sm:p-5" data-agent-id="workbench.process" data-agent-state={steps.length ? "ready" : "idle"}>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="eyebrow">PROCESS DEMO / 算法过程演示</p>
@@ -110,7 +110,7 @@ export default function ProcessDemo({ algorithm, algorithmName, mode, input, key
           <p className="mt-1 text-xs text-white/45">按当前输入、密钥与{actionLabel}流程，逐步展开算法的每一次中间运算。</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" className="mini-wide-button" onClick={() => void build()} disabled={busy || !input.trim()}>
+          <button type="button" className="mini-wide-button" data-agent-id="workbench.process.build" onClick={() => void build()} disabled={busy || !input.trim()}>
             {busy ? <LoaderCircle className="animate-spin" /> : <Sparkles />}
             {steps.length ? "重新生成" : "生成演示步骤"}
           </button>
@@ -118,6 +118,7 @@ export default function ProcessDemo({ algorithm, algorithmName, mode, input, key
             <>
               <div className="segmented">
                 <button
+                  data-agent-id="workbench.process.previous"
                   type="button"
                   onClick={() => {
                     setPlaying(false);
@@ -129,6 +130,7 @@ export default function ProcessDemo({ algorithm, algorithmName, mode, input, key
                   上一步
                 </button>
                 <button
+                  data-agent-id="workbench.process.next"
                   type="button"
                   onClick={() => {
                     setPlaying(false);
@@ -140,11 +142,12 @@ export default function ProcessDemo({ algorithm, algorithmName, mode, input, key
                   <ChevronRight className="h-3.5 w-3.5" />
                 </button>
               </div>
-              <button type="button" className="mini-wide-button" onClick={() => setPlaying((value) => !value)} disabled={steps.length < 2}>
+              <button type="button" className="mini-wide-button" data-agent-id="workbench.process.play" onClick={() => setPlaying((value) => !value)} disabled={steps.length < 2}>
                 {playing ? <Pause /> : <Play />}
                 {playing ? "暂停" : "自动播放"}
               </button>
               <button
+                data-agent-id="workbench.process.reset"
                 type="button"
                 className="icon-button"
                 title="回到第一步"
@@ -183,7 +186,7 @@ export default function ProcessDemo({ algorithm, algorithmName, mode, input, key
       ) : (
         step && (
           <div className="mt-4 grid gap-4 lg:grid-cols-[250px_minmax(0,1fr)]">
-            <ol className="soft-scroll max-h-[430px] space-y-1 overflow-y-auto pr-1">
+            <ol className="soft-scroll max-h-[430px] space-y-1 overflow-y-auto pr-1" data-agent-id="workbench.process.steps">
               {steps.map((item, index) => (
                 <li key={index}>
                   <button
@@ -206,7 +209,7 @@ export default function ProcessDemo({ algorithm, algorithmName, mode, input, key
                 </li>
               ))}
             </ol>
-            <div className="soft-scroll max-h-[430px] min-h-[240px] overflow-y-auto rounded-2xl border border-white/8 bg-black/12 p-4">
+            <div className="soft-scroll max-h-[430px] min-h-[240px] overflow-y-auto rounded-2xl border border-white/8 bg-black/12 p-4" data-agent-id="workbench.process.current">
               <p className="eyebrow">
                 STEP {current + 1} / {steps.length}
               </p>

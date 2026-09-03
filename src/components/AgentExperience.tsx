@@ -19,7 +19,7 @@ import {
   X,
 } from "lucide-react";
 
-export type AgentNavigateTarget = "home" | "workbench" | "dh" | "network" | "catalog" | "innovation" | "agent";
+export type AgentNavigateTarget = "home" | "workbench" | "dh" | "network" | "catalog" | "innovation" | "image-lab" | "ocean" | "agent";
 type AgentMode = "studio" | "dock" | "hidden";
 type ToolCall = { id: string; type: "function"; function: { name: string; arguments: string } };
 type ProtocolMessage = {
@@ -50,11 +50,14 @@ type AgentExperienceProps = {
 };
 
 const quickPrompts = ["带我演示 AES", "讲解 DH 密钥交换", "如何使用双机通信", "查看全部算法"];
-const navigationTargets = new Set<AgentNavigateTarget>(["home", "workbench", "dh", "network", "catalog", "innovation", "agent"]);
+const navigationTargets = new Set<AgentNavigateTarget>(["home", "workbench", "dh", "network", "catalog", "innovation", "image-lab", "ocean", "agent"]);
 const safeActivations = new Set([
   "workbench.algorithm.aes", "workbench.sample", "workbench.generate-key", "workbench.run",
+  "workbench.process.build", "workbench.process.previous", "workbench.process.next", "workbench.process.play", "workbench.process.reset",
   "dh.mode.normal", "dh.mode.mitm", "dh.mode.protected", "dh.reveal", "dh.regenerate",
   "dh.exchange", "dh.copy-secret", "dh.demo.next", "dh.demo.auto",
+  "image-lab.tab.redaction", "image-lab.tab.stego", "image-lab.tab.watermark", "image-lab.tab.orchestrator",
+  "ocean.enter", "ocean.previous", "ocean.next", "ocean.open-lab",
 ]);
 const safeInputTargets = new Set(["workbench.input", "dh.message.original", "dh.message.modified"]);
 
@@ -342,6 +345,31 @@ export default function AgentExperience({ mode, userId, userName, onNavigate }: 
       await showGuide("workbench.output", "加密结果已经生成；AES-GCM 还会验证内容是否被篡改。", 3_400);
       return generated ? "已完成 AES 教学示例、执行加密并高亮结果" : "已执行 AES 教学示例，但结果区尚未完成更新";
     }
+    if (topic === "process") {
+      await navigateAndWait("workbench", "workbench.algorithm.aes");
+      await clickControl("workbench.algorithm.aes");
+      await fillAgentInput("workbench.input", "Lumora 算法过程教学示例");
+      await sleep(120);
+      await clickControl("workbench.process.build");
+      const completed = await waitForAgentState("workbench.process", "ready");
+      await showGuide("workbench.process", "这里会依据当前算法、输入和密钥，逐步展示每一次中间运算。", 3_400);
+      return completed ? "已打开单机实验台并生成 AES 算法过程演示" : "已打开算法过程演示，步骤仍在生成";
+    }
+    if (topic === "image_lab") {
+      await navigateAndWait("image-lab", "image-lab.root");
+      await showGuide("image-lab.uploader", "先在这里选择一张本地图片；Agent 不会替你读取或上传文件。", 2_600);
+      await sleep(900);
+      await showGuide("image-lab.tabs", "图片就绪后，可在脱敏、隐写、水印和安全编排四个模块之间切换。", 3_400);
+      return "已打开图像安全操作台并介绍本地图片入口和四个安全模块";
+    }
+    if (topic === "ocean") {
+      await navigateAndWait("ocean", "ocean.root");
+      await showGuide("ocean.enter", "这里进入图像安全功能矩阵。", 2_200);
+      await sleep(800);
+      await clickControl("ocean.enter");
+      await showGuide("ocean.cards", "功能矩阵包含局部脱敏、隐写、水印与自适应安全编排。", 3_400);
+      return "已打开图像安全展厅并进入功能矩阵";
+    }
     if (topic === "dh_mitm") {
       await navigateAndWait("dh", "dh.mode.mitm");
       await clickControl("dh.mode.mitm");
@@ -374,8 +402,9 @@ export default function AgentExperience({ mode, userId, userName, onNavigate }: 
       await showGuide("dh.bob", "Bob 同样独立生成密钥对，双方不传输私钥。", 1_900);
       await sleep(900);
       await clickControl("dh.exchange");
+      const completed = await waitForAgentState("dh.normal.result", "complete");
       await showGuide("dh.exchange", "双方使用对方公钥推导出相同的共享密钥。", 3_400);
-      return "已打开 DH 页面并完成一次本地公钥交换演示";
+      return completed ? "已打开 DH 页面并完成一次本地公钥交换演示" : "已启动 DH 公钥交换，结果仍在计算";
     }
     if (topic === "network") {
       await navigateAndWait("network", "network.relay");

@@ -65,9 +65,14 @@ try {
   assert.equal(upstreamBody.stream, true);
   assert.equal(Array.isArray(upstreamBody.tools) && upstreamBody.tools.length >= 5, true);
   const guidedTourTopics = upstreamBody.tools.find((tool) => tool.function?.name === "start_guided_tour")?.function?.parameters?.properties?.topic?.enum || [];
+  const navigationTargets = upstreamBody.tools.find((tool) => tool.function?.name === "navigate_to")?.function?.parameters?.properties?.target?.enum || [];
+  const highlightTargets = upstreamBody.tools.find((tool) => tool.function?.name === "highlight_control")?.function?.parameters?.properties?.target?.enum || [];
   const safeDhControls = upstreamBody.tools.find((tool) => tool.function?.name === "activate_control")?.function?.parameters?.properties?.target?.enum || [];
   const fillTargets = upstreamBody.tools.find((tool) => tool.function?.name === "fill_example_text")?.function?.parameters?.properties?.target?.enum || [];
   assert.equal(["dh", "dh_mitm", "dh_protected"].every((topic) => guidedTourTopics.includes(topic)), true);
+  assert.equal(["process", "image_lab", "ocean"].every((topic) => guidedTourTopics.includes(topic)), true);
+  assert.equal(["image-lab", "ocean"].every((target) => navigationTargets.includes(target)), true);
+  assert.equal(["workbench.process", "image-lab.tabs", "ocean.cards"].every((target) => highlightTargets.includes(target)), true);
   assert.equal(["dh.mode.normal", "dh.mode.mitm", "dh.mode.protected", "dh.demo.next", "dh.demo.auto"].every((target) => safeDhControls.includes(target)), true);
   assert.equal(["dh.message.original", "dh.message.modified"].every((target) => fillTargets.includes(target)), true);
   assert.match(upstreamBody.messages[0].content, /受限网页 Agent/);

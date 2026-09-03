@@ -253,7 +253,7 @@ export default function OceanDashboard({ onNavigate }: OceanDashboardProps) {
   };
 
   return (
-    <div className="oc2-root" ref={scrollerRef}>
+    <div className="oc2-root" data-agent-id="ocean.root" ref={scrollerRef}>
       {/* ============ 第一幕：光束 + 鱼群 + 打字 ============ */}
       <section className="oc2-act oc2-hero" ref={heroRef}>
         <video
@@ -273,7 +273,7 @@ export default function OceanDashboard({ onNavigate }: OceanDashboardProps) {
           <button className="oc2-chip liquid-glass" type="button" onClick={() => onNavigate("innovation")}>
             <ArrowLeft size={15} /> 返回创新页
           </button>
-          <button className="oc2-chip liquid-glass" type="button" onClick={() => onNavigate("image-lab")}>
+          <button className="oc2-chip liquid-glass" data-agent-id="ocean.open-lab" type="button" onClick={() => onNavigate("image-lab")}>
             打开操作台 <ArrowRight size={15} />
           </button>
         </header>
@@ -300,7 +300,7 @@ export default function OceanDashboard({ onNavigate }: OceanDashboardProps) {
             在同一片深海里完成局部脱敏、数字水印、隐写攻防与自适应密码编排。
           </p>
           <div className="oc2-hero-cta oc2-hero-stagger">
-            <button className="oc2-btn-primary" type="button" onClick={scrollToHub}>
+            <button className="oc2-btn-primary" data-agent-id="ocean.enter" type="button" onClick={scrollToHub}>
               进入功能矩阵 <ChevronDown size={17} />
             </button>
           </div>
@@ -308,7 +308,7 @@ export default function OceanDashboard({ onNavigate }: OceanDashboardProps) {
       </section>
 
       {/* ============ 第二幕：漩涡 + 4 卡环转 ============ */}
-      <section className="oc2-act oc2-hub" ref={hubRef}>
+      <section className="oc2-act oc2-hub" data-agent-id="ocean.hub" ref={hubRef}>
         <video
           className="oc2-hub-media"
           autoPlay
@@ -332,16 +332,16 @@ export default function OceanDashboard({ onNavigate }: OceanDashboardProps) {
               拖动漩涡或用箭头旋转，点击正面的卡片进入对应实验。四个模块共享同一套密码引擎。
             </p>
             <div className="oc2-hub-controls">
-              <button className="oc2-arrow liquid-glass" type="button" onClick={() => rotateBy(-1)} aria-label="上一个模块">
+              <button className="oc2-arrow liquid-glass" data-agent-id="ocean.previous" type="button" onClick={() => rotateBy(-1)} aria-label="上一个模块">
                 <ChevronLeft size={18} />
               </button>
-              <button className="oc2-arrow liquid-glass" type="button" onClick={() => rotateBy(1)} aria-label="下一个模块">
+              <button className="oc2-arrow liquid-glass" data-agent-id="ocean.next" type="button" onClick={() => rotateBy(1)} aria-label="下一个模块">
                 <ChevronRight size={18} />
               </button>
             </div>
           </aside>
 
-          <div className="oc2-stage-wrap">
+          <div className="oc2-stage-wrap" data-agent-id="ocean.cards">
             {/* 纯 CSS/SVG 漩涡光环（无人物） */}
             <div className="oc2-vortex" aria-hidden="true">
               <span className="oc2-vortex-ring r1" />

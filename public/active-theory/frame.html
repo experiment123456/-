@@ -320,7 +320,11 @@
       parent.postMessage({ type: "lumora:source-end", atEnd }, location.origin);
     }, 120);
     addEventListener("error", (event) => {
-      if (String(event.message).includes("Cannot read properties of undefined (reading 'length')")) event.preventDefault();
+      const message = String(event.message);
+      if (
+        message.includes("Cannot read properties of undefined (reading 'length')")
+        || message.includes("Cannot read properties of undefined (reading 'image')")
+      ) event.preventDefault();
     });
   </script>
   <script defer src="/active-theory/assets/js/app.lumora.local-z-v2.js?v=lumora-agent-v12"></script>

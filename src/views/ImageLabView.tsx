@@ -86,7 +86,7 @@ export default function ImageLabView({ onNavigate }: ImageLabViewProps) {
   const panelProps = { image, color: capsule.color, glow: capsule.glow, send };
 
   return (
-    <div className="il-root">
+    <div className="il-root" data-agent-id="image-lab.root">
       <header className="il-topbar" data-ripple-block>
         <button className="il-back liquid-glass" type="button" onClick={() => onNavigate("ocean")}>
           <ArrowLeft size={16} /> 返回海底大屏
@@ -105,7 +105,7 @@ export default function ImageLabView({ onNavigate }: ImageLabViewProps) {
       </header>
 
       <div className="il-body">
-        <section className="il-uploader workspace-card" data-ripple-block>
+        <section className="il-uploader workspace-card" data-agent-id="image-lab.uploader" data-ripple-block>
           <div
             className={`il-dropzone ${dragging ? "is-dragging" : ""}`}
             onDragOver={(event) => { event.preventDefault(); setDragging(true); }}
@@ -133,10 +133,11 @@ export default function ImageLabView({ onNavigate }: ImageLabViewProps) {
           {error && <p className="il-error">{error}</p>}
         </section>
 
-        <nav className="il-tabs" data-ripple-block>
+        <nav className="il-tabs" data-agent-id="image-lab.tabs" data-ripple-block>
           {CAPSULES.map((item, index) => (
             <button
               key={item.id}
+              data-agent-id={`image-lab.tab.${item.id}`}
               type="button"
               className={`il-tab ${active === item.id ? "is-active" : ""}`}
               onClick={() => setActive(item.id)}
@@ -150,7 +151,7 @@ export default function ImageLabView({ onNavigate }: ImageLabViewProps) {
           ))}
         </nav>
 
-        <section className="il-stage panel-reveal" key={active}>
+        <section className="il-stage panel-reveal" data-agent-id="image-lab.stage" key={active}>
           {active === "redaction" && <RedactionPanel {...panelProps} />}
           {active === "stego" && <StegoPanel {...panelProps} />}
           {active === "watermark" && <WatermarkPanel {...panelProps} />}

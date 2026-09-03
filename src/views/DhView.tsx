@@ -265,7 +265,7 @@ export default function DhView() {
             {partyCard("Bob", "DECRYPTOR / 解密端", bob, bobSecret)}
           </div>
           <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_auto]">
-            <div className={`verification-card rounded-[24px] p-5 ${matched ? "is-verified" : ""}`}>
+            <div className={`verification-card rounded-[24px] p-5 ${matched ? "is-verified" : ""}`} data-agent-id="dh.normal.result" data-agent-state={matched ? "complete" : "idle"}>
               <div className="flex items-start gap-4">
                 <div className="verification-icon">{matched ? <Check /> : <ShieldCheck />}</div>
                 <div>
@@ -277,7 +277,7 @@ export default function DhView() {
                 {matched && <button className="icon-button ml-auto" data-agent-id="dh.copy-secret" type="button" onClick={() => void navigator.clipboard.writeText(aliceSecret)} title="复制共享密钥"><Copy /></button>}
               </div>
             </div>
-            <button className="primary-button min-w-52" type="button" onClick={() => void exchange()} disabled={busy}>
+            <button className="primary-button min-w-52" data-agent-id="dh.exchange" type="button" onClick={() => void exchange()} disabled={busy}>
               <RefreshCw className={busy ? "animate-spin" : ""} />{busy ? "正在计算…" : "开始公钥交换"}
             </button>
           </div>

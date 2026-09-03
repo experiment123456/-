@@ -98,7 +98,7 @@ try {
 
   await page.getByRole("button", { name: "讲解 DH 密钥交换", exact: true }).click();
   await page.waitForURL((url) => url.hash === "#dh");
-  await page.getByText(/演示已经完成/).waitFor();
+  await page.getByText(/演示(?:已经|已)完成/).waitFor();
   results.toolNavigated = true;
   results.dhExecuted = await page.getByText(/交换成功/).isVisible();
   results.persistentDock = await page.locator(".agent-dock").isVisible();
@@ -125,8 +125,32 @@ try {
   completionCount = await page.getByText(/演示(?:已经|已)完成/).count();
   await page.getByRole("button", { name: "带我演示 AES", exact: true }).click();
   await page.waitForURL((url) => url.hash === "#workbench");
-  await page.waitForFunction((before) => [...document.querySelectorAll("p")].filter((node) => node.textContent?.includes("演示已经完成")).length > before, completionCount);
+  await page.waitForFunction((before) => [...document.querySelectorAll("p")].filter((node) => /演示(?:已经|已)完成/.test(node.textContent || "")).length > before, completionCount);
   results.aesExecuted = await page.locator('[data-agent-id="workbench.output"]').evaluate((element) => element instanceof HTMLTextAreaElement && Boolean(element.value));
+
+  completionCount = await page.getByText(/演示(?:已经|已)完成/).count();
+  await page.locator(".agent-composer textarea").fill("演示算法过程");
+  await page.locator('.agent-composer button[type="submit"]').click();
+  await page.waitForURL((url) => url.hash === "#workbench");
+  await page.locator('[data-agent-id="workbench.process"][data-agent-state="ready"]').waitFor();
+  await page.waitForFunction((before) => [...document.querySelectorAll("p")].filter((node) => /演示(?:已经|已)完成/.test(node.textContent || "")).length > before, completionCount);
+  results.processDemoAgent = true;
+
+  completionCount = await page.getByText(/演示(?:已经|已)完成/).count();
+  await page.locator(".agent-composer textarea").fill("打开图像安全操作台");
+  await page.locator('.agent-composer button[type="submit"]').click();
+  await page.waitForURL((url) => url.hash === "#image-lab");
+  await page.locator('[data-agent-id="image-lab.tabs"]').waitFor();
+  await page.waitForFunction((before) => [...document.querySelectorAll("p")].filter((node) => /演示(?:已经|已)完成/.test(node.textContent || "")).length > before, completionCount);
+  results.imageLabAgent = true;
+
+  completionCount = await page.getByText(/演示(?:已经|已)完成/).count();
+  await page.locator(".agent-composer textarea").fill("带我参观图像安全展厅");
+  await page.locator('.agent-composer button[type="submit"]').click();
+  await page.waitForURL((url) => url.hash === "#ocean");
+  await page.locator('[data-agent-id="ocean.cards"]').waitFor();
+  await page.waitForFunction((before) => [...document.querySelectorAll("p")].filter((node) => /演示(?:已经|已)完成/.test(node.textContent || "")).length > before, completionCount);
+  results.oceanAgent = true;
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator(".agent-dock-actions button").last().click();

@@ -54,9 +54,10 @@ try {
   const escapeDistance = Math.hypot(afterCenter.x - beforeCenter.x, afterCenter.y - beforeCenter.y);
   results.mouseEscape = escapeDistance > 12 && afterCenter.x < beforeCenter.x;
 
-  results.agentEntryVisible = await page.getByRole("button", { name: "启动 Agent", exact: true }).isVisible();
-  await page.getByRole("button", { name: "组件", exact: true }).click();
-  results.sectionInteraction = await page.getByText("MODULAR GLASS FIELD", { exact: true }).isVisible();
+  results.agentEntryVisible = await page.getByRole("button", { name: "启动智能导师", exact: true }).isVisible();
+  results.imageEntryVisible = await page.getByRole("button", { name: "图片实验", exact: true }).isVisible();
+  await page.getByRole("button", { name: "关于", exact: true }).click();
+  results.sectionInteraction = await page.getByText("EXPERIMENTAL SURFACE", { exact: true }).isVisible();
 
   results.desktopOverflow = await page.evaluate(() => ({
     horizontal: document.documentElement.scrollWidth > innerWidth,

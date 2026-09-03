@@ -62,6 +62,67 @@
       pointer-events: none !important;
     }
 
+    .agent-video-sound {
+      position: fixed;
+      z-index: 80;
+      right: clamp(18px, 2.4vw, 36px);
+      bottom: clamp(18px, 2.4vw, 36px);
+      display: grid;
+      grid-template-columns: 38px auto;
+      grid-template-rows: auto auto;
+      column-gap: 11px;
+      align-items: center;
+      min-width: 164px;
+      padding: 11px 16px 11px 11px;
+      border: 1px solid rgba(205, 246, 238, .28);
+      border-radius: 999px;
+      color: #effffb;
+      background: rgba(4, 13, 11, .76);
+      box-shadow: inset 0 1px rgba(255, 255, 255, .1), 0 14px 40px rgba(0, 0, 0, .32);
+      font-family: nbarchitekt, "Microsoft YaHei", sans-serif;
+      text-align: left;
+      cursor: pointer;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(10px);
+      transition: opacity .25s ease, transform .25s ease, border-color .25s ease, background .25s ease;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+
+    .agent-video-sound.is-visible {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+
+    .agent-video-sound:hover,
+    .agent-video-sound.is-on {
+      border-color: rgba(174, 255, 234, .5);
+      background: rgba(8, 27, 22, .88);
+    }
+
+    .agent-video-sound__icon {
+      grid-row: 1 / span 2;
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border: 1px solid rgba(213, 255, 244, .24);
+      border-radius: 50%;
+      color: rgba(223, 255, 247, .72);
+      background: rgba(171, 255, 232, .08);
+      font-size: 16px;
+    }
+
+    .agent-video-sound.is-on .agent-video-sound__icon {
+      color: #eafff9;
+      box-shadow: 0 0 22px rgba(128, 255, 218, .2);
+    }
+
+    .agent-video-sound b { font-size: 12px; font-weight: 700; letter-spacing: .04em; }
+    .agent-video-sound small { color: rgba(220, 245, 238, .48); font-size: 9px; letter-spacing: .08em; }
+
     .cage-core {
       --cage-core-y: 55%;
       position: fixed;
@@ -255,6 +316,45 @@
     })();
 
     const openLumoraAgent = () => parent.postMessage({ type: "lumora:open-agent" }, location.origin);
+    const findWelcomeVideo = () => [...document.querySelectorAll("video")].find((video) => {
+      const source = video.currentSrc || video.src;
+      return source.includes("/assets/agent-details/welcome.mp4");
+    });
+    let lastWelcomeVideo = null;
+    const updateWelcomeSoundControl = () => {
+      const button = document.querySelector(".agent-video-sound");
+      if (!button) return;
+      const video = findWelcomeVideo();
+      if (!video && lastWelcomeVideo) {
+        lastWelcomeVideo.muted = true;
+        lastWelcomeVideo = null;
+      }
+      if (video) lastWelcomeVideo = video;
+      const audible = Boolean(video && !video.muted);
+      button.classList.toggle("is-visible", Boolean(video));
+      button.classList.toggle("is-on", audible);
+      button.setAttribute("aria-pressed", String(audible));
+      button.querySelector("b").textContent = audible ? "关闭声音" : "开启声音";
+    };
+    addEventListener("DOMContentLoaded", () => {
+      document.querySelector(".agent-video-sound")?.addEventListener("click", async () => {
+        const video = findWelcomeVideo();
+        if (!video) return;
+        if (!video.muted) {
+          video.muted = true;
+          updateWelcomeSoundControl();
+          return;
+        }
+        video.volume = .85;
+        video.muted = false;
+        try {
+          await video.play();
+        } catch {
+          video.muted = true;
+        }
+        updateWelcomeSoundControl();
+      });
+    });
     const isAgentEntry = (target) => {
       const link = target?.closest?.("a");
       return Boolean(link && new URL(link.href, location.href).hash === "#lumora-agent-use");
@@ -262,12 +362,12 @@
     const isShowcaseSurface = (target) => Boolean(target?.closest?.("#Stage, .FXScroll, canvas"));
     let showcasePress = null;
     document.addEventListener("pointerdown", (event) => {
-      const target = event.target instanceof Element ? event.target : null;
+      const target = typeof event.target?.closest === "function" ? event.target : null;
       if (!isShowcaseSurface(target) || isAgentEntry(target)) return;
       showcasePress = { id: event.pointerId, x: event.clientX, y: event.clientY };
     }, true);
     document.addEventListener("pointerup", (event) => {
-      const target = event.target instanceof Element ? event.target : null;
+      const target = typeof event.target?.closest === "function" ? event.target : null;
       if (!showcasePress || showcasePress.id !== event.pointerId || isAgentEntry(target)) {
         showcasePress = null;
         return;
@@ -279,7 +379,7 @@
       event.stopImmediatePropagation();
     }, true);
     document.addEventListener("click", (event) => {
-      const target = event.target instanceof Element ? event.target : null;
+      const target = typeof event.target?.closest === "function" ? event.target : null;
       const link = target?.closest("a");
       if (link && new URL(link.href, location.href).hash === "#lumora-agent-use") {
         event.preventDefault();
@@ -288,10 +388,8 @@
         return;
       }
 
-      // The mirrored showcase still contains its original project routes.
-      // In Lumora those routes resolve to the host SPA and fall through to its
-      // login view. Keep the canvas hover and scroll interactions, but make a
-      // plain click on the 3D scene intentionally stay on the current page.
+      // Keep incompatible legacy routes inside the mirrored showcase from
+      // replacing the frame with the host application's login page.
       if (target?.closest("#Stage, canvas")) {
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -303,6 +401,7 @@
     let lastEndState = null;
     let lastCageCoreState = null;
     setInterval(() => {
+      updateWelcomeSoundControl();
       const progress = Number(window.__LUMORA_SOURCE_SCROLL__?.progress || 0);
       const cageCore = document.querySelector(".cage-core");
       const cageCoreActive = progress >= 0.707 && progress <= 0.782;
@@ -333,6 +432,11 @@
   <!-- The host App owns the single persistent background-music player. The
        mirrored showcase checks for this marker and skips its legacy playlist. -->
   <audio id="homepage-autoplay-audio" aria-hidden="true" hidden></audio>
+  <button class="agent-video-sound" type="button" aria-label="切换第一张卡片视频声音" aria-pressed="false">
+    <span class="agent-video-sound__icon" aria-hidden="true">♪</span>
+    <b>开启声音</b>
+    <small>第一张卡片视频</small>
+  </button>
   <div class="cage-core" aria-hidden="true">
     <span class="cage-core__beam"></span>
     <span class="cage-core__ring cage-core__ring--outer"></span>

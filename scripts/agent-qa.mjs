@@ -33,6 +33,15 @@ try {
     server.stderr.on("data", (chunk) => { logs += chunk; });
   });
   browser = await chromium.launch({ ...browserLocation(), headless: true });
+  const guestPage = await browser.newPage({ viewport: { width: 1440, height: 960 } });
+  await guestPage.goto(`${base}#innovation`, { waitUntil: "domcontentloaded" });
+  await guestPage.getByRole("heading", { name: "AI 创新界面" }).waitFor();
+  await guestPage.getByRole("button", { name: "启动智能导师", exact: true }).click();
+  await guestPage.locator(".agent-showcase-frame").waitFor();
+  results.guestAgentNoLogin = guestPage.url().endsWith("#agent")
+    && await guestPage.locator(".auth-card").count() === 0;
+  await guestPage.close();
+
   const page = await browser.newPage({ viewport: { width: 1440, height: 960 } });
   page.on("pageerror", (error) => {
     const detail = error.stack || error.message;
@@ -71,7 +80,9 @@ try {
   assert.ok(sourceFrameBox, "Active Theory source frame has no clickable bounds");
   await page.mouse.click(sourceFrameBox.x + sourceFrameBox.width / 2, sourceFrameBox.y + sourceFrameBox.height / 2);
   await page.waitForTimeout(400);
-  results.sourceClickStaysPut = page.url().endsWith("#agent") && sourceFrame.url() === sourceUrlBeforeClick;
+  results.sourceClickStaysPut = page.url().endsWith("#agent")
+    && sourceFrame.url() === sourceUrlBeforeClick
+    && await page.locator(".agent-showcase-frame").isVisible();
   await page.mouse.move(720, 480);
   for (let index = 0; index < 42; index += 1) {
     await page.mouse.wheel(0, 1_100);
@@ -155,7 +166,10 @@ try {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator(".agent-dock-actions button").last().click();
   results.mobileOrb = await page.locator(".agent-dock-orb").isVisible();
+  results.mobileOrbClose = await page.getByRole("button", { name: "关闭 AI 悬浮窗" }).isVisible();
   results.noOverflow = await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
+  await page.getByRole("button", { name: "关闭 AI 悬浮窗" }).click();
+  results.mobileOrbClosed = await page.locator(".agent-dock-orb").count() === 0;
   results.noRuntimeErrors = errors.length === 0;
   assert.equal(Object.values(results).every(Boolean), true, JSON.stringify({ results, errors, sourceErrors }, null, 2));
   console.log(JSON.stringify({ ok: true, results, errors, sourceErrors, screenshots }, null, 2));

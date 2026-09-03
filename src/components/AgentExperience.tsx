@@ -728,22 +728,33 @@ export default function AgentExperience({ mode, userId, userName, onNavigate }: 
   if (mode === "dock") {
     if (minimized) {
       return (
-        <button
-          className="agent-dock-orb"
-          type="button"
-          style={{ left: orbPosition.x, top: orbPosition.y, right: "auto", bottom: "auto" }}
-          onPointerDown={startOrbInteraction}
-          onClick={(event) => {
-            if (orbDraggedRef.current) {
-              event.preventDefault();
-              orbDraggedRef.current = false;
-              return;
-            }
-            setMinimized(false);
-          }}
-          aria-label="打开 Lumora Agent；可拖动悬浮球"
-          title="拖动可移动，单击打开"
-        ><Bot /><span>AI</span></button>
+        <>
+          <button
+            className="agent-dock-orb"
+            type="button"
+            style={{ left: orbPosition.x, top: orbPosition.y, right: "auto", bottom: "auto" }}
+            onPointerDown={startOrbInteraction}
+            onClick={(event) => {
+              if (orbDraggedRef.current) {
+                event.preventDefault();
+                orbDraggedRef.current = false;
+                return;
+              }
+              setMinimized(false);
+            }}
+            aria-label="打开 Lumora Agent；可拖动悬浮球"
+            title="拖动可移动，单击打开"
+          ><Bot /><span>AI</span></button>
+          <button
+            className="agent-dock-orb-close"
+            type="button"
+            style={{ left: orbPosition.x + 45, top: orbPosition.y - 7 }}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={() => { setActivated(false); setMinimized(false); }}
+            aria-label="关闭 AI 悬浮窗"
+            title="关闭 AI 悬浮窗"
+          ><X /></button>
+        </>
       );
     }
     return (
@@ -771,7 +782,7 @@ export default function AgentExperience({ mode, userId, userName, onNavigate }: 
         <iframe
           ref={sourceFrameRef}
           className="agent-showcase-frame"
-          src="/active-theory/frame.html?v=lumora-agent-v14"
+          src="/active-theory/frame.html?v=lumora-agent-v17"
           title="Lumora Agent 动态作品空间"
           sandbox="allow-scripts allow-same-origin"
         />

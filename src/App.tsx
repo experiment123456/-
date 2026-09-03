@@ -218,7 +218,7 @@ function App() {
   };
 
   const navigate = (requested: AppView) => {
-    const next = (requested === "account" || requested === "agent") && !user ? "login" : requested;
+    const next = requested === "account" && !user ? "login" : requested;
     mediaViewRef.current = next;
     if (next !== "login") {
       loginRequestRef.current += 1;

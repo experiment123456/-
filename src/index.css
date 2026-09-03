@@ -4949,6 +4949,24 @@ button:disabled {
 .agent-dock-orb svg { width: 18px; }
 .agent-dock-orb span { position: absolute; right: -2px; bottom: -2px; display: grid; width: 23px; height: 23px; place-items: center; border: 2px solid #0b1512; border-radius: 50%; color: #10211b; background: #d9fff3; font-size: 7px; font-weight: 800; }
 
+.agent-dock-orb-close {
+  position: fixed;
+  z-index: 48;
+  display: grid;
+  width: 23px;
+  height: 23px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 50%;
+  color: #5f4522;
+  background: rgba(255, 250, 240, 0.96);
+  box-shadow: 0 5px 16px rgba(54, 37, 17, 0.25);
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.agent-dock-orb-close:hover { background: #fff; transform: scale(1.08); }
+.agent-dock-orb-close svg { width: 12px; height: 12px; stroke-width: 2.4; }
+
 .agent-highlight-target {
   position: relative !important;
   z-index: 46 !important;
@@ -5052,6 +5070,7 @@ button:disabled {
 .motion-reduced .agent-action-line svg,
 .motion-reduced .agent-dock,
 .motion-reduced .agent-dock-orb,
+.motion-reduced .agent-dock-orb-close,
 .motion-reduced .agent-highlight-target {
   animation: none !important;
 }

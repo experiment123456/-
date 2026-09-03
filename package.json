@@ -18,7 +18,9 @@
     "test:media": "node scripts/media-qa.mjs",
     "test:agent": "node scripts/agent-qa.mjs",
     "test:agent-api": "node scripts/agent-api-qa.mjs",
+    "test:agent-details": "node scripts/agent-detail-media-qa.mjs",
     "test:share": "node scripts/share-qa.mjs",
+    "generate:agent-details": "node scripts/generate-agent-detail-media.mjs",
     "pack:share": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/package-share.ps1"
   },
   "dependencies": {

@@ -11,7 +11,7 @@
     "caseStudyURL": "",
     "projectURL": "",
     "video": {
-      "url": "assets/agent-cards/welcome.webm",
+      "url": "assets/agent-details/welcome.mp4",
       "thumbnail": "assets/agent-cards/welcome.png"
     }
   },
@@ -27,7 +27,7 @@
     "caseStudyURL": "",
     "projectURL": "",
     "video": {
-      "url": "assets/agent-cards/guide.webm",
+      "url": "assets/agent-details/interactive-guide.webm",
       "thumbnail": "assets/agent-cards/guide.png"
     }
   },
@@ -43,7 +43,7 @@
     "caseStudyURL": "",
     "projectURL": "",
     "video": {
-      "url": "assets/agent-cards/capabilities.webm",
+      "url": "assets/agent-details/cryptography-lab.webm",
       "thumbnail": "assets/agent-cards/capabilities.png"
     }
   },
@@ -59,7 +59,7 @@
     "caseStudyURL": "",
     "projectURL": "",
     "video": {
-      "url": "assets/agent-cards/security.webm",
+      "url": "assets/agent-details/security-boundaries.webm",
       "thumbnail": "assets/agent-cards/security.png"
     }
   },
@@ -75,7 +75,7 @@
     "caseStudyURL": "",
     "projectURL": "",
     "video": {
-      "url": "assets/agent-cards/launch.webm",
+      "url": "assets/agent-details/agent-workspace.webm",
       "thumbnail": "assets/agent-cards/launch.png"
     }
   }

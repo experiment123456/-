@@ -401,7 +401,7 @@ export default function NetworkView() {
 
   const copyText = async (text: string) => {
     try { await navigator.clipboard.writeText(text); }
-    catch { setError("复制失败，请手动复制地址或房间码"); }
+    catch { setError("复制失败，请手动复制"); }
   };
   const editable = status === "offline" || status === "error";
   const isSecure = status === "secure" && Boolean(sharedSecret);

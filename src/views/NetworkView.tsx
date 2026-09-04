@@ -73,6 +73,21 @@ function cipherKeys(algorithm: AlgorithmId, shared: string) {
   return { key: shared };
 }
 
+function CipherBlock({ cipher, outbound, onCopy }: { cipher: string; outbound: boolean; onCopy: (text: string) => void }) {
+  return (
+    <details className="chat-cipher">
+      <summary>
+        <span className="chat-cipher-label">{outbound ? "密文" : "收到密文"}</span>
+        <span className="chat-cipher-preview">{cipher}</span>
+      </summary>
+      <div className="chat-cipher-body">
+        <button className="chat-cipher-copy" type="button" onClick={() => onCopy(cipher)} title="复制密文">复制</button>
+        {cipher}
+      </div>
+    </details>
+  );
+}
+
 export default function NetworkView() {
   const [role, setRole] = useState<Role>("encryptor");
   const [room, setRoom] = useState(() => "LUM-" + Math.random().toString(36).slice(2, 7).toUpperCase());
@@ -281,11 +296,12 @@ export default function NetworkView() {
               const algorithm = data.algorithm as AlgorithmId;
               const sessionKey = secretRef.current;
               if (!sessionKey || algorithm !== negotiatedRef.current || !localSm2) throw new Error("消息尚未完成密钥/算法协商");
+              const wirePayload = String(data.payload);
               const plain = algorithm === "sm2"
-                ? sm2Decrypt(String(data.payload), JSON.stringify(localSm2))
-                : await processAlgorithm({ algorithm, mode: "decrypt", input: String(data.payload), ...cipherKeys(algorithm, sessionKey) });
+                ? sm2Decrypt(wirePayload, JSON.stringify(localSm2))
+                : await processAlgorithm({ algorithm, mode: "decrypt", input: wirePayload, ...cipherKeys(algorithm, sessionKey) });
               if (!current()) return;
-              append({ direction: "in", text: plain, algorithm: algorithms.find((item) => item.id === algorithm)?.name, verified: md5(plain) === data.digest, cipher: String(data.payload) });
+              append({ direction: "in", text: plain, algorithm: algorithms.find((item) => item.id === algorithm)?.name, verified: md5(plain) === data.digest, cipher: wirePayload });
             } else if (data.type === "file") {
               const sessionKey = secretRef.current;
               if (!sessionKey) throw new Error("尚未获得 DH 会话密钥");
@@ -486,6 +502,7 @@ export default function NetworkView() {
             ) : (
               <div className={`chat-row ${item.direction === "out" ? "is-out" : "is-in"}`} key={item.id}>
                 <div className="chat-bubble">
+                  {item.cipher && <CipherBlock cipher={item.cipher} outbound={item.direction === "out"} onCopy={(text) => void copyText(text)} />}
                   <p className="whitespace-pre-wrap break-words">{item.text}</p>
                   <div><span>{item.algorithm}</span><span>{item.time}</span>{item.verified !== undefined && <span className={item.verified ? "text-emerald-200" : "text-amber-200"}>{item.verified ? "MD5 ✓" : "MD5 !"}</span>}</div>
                 </div>

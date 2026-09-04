@@ -41,6 +41,7 @@ interface ChatItem {
   text: string;
   algorithm?: string;
   verified?: boolean;
+  cipher?: string;
   time: string;
 }
 
@@ -284,7 +285,7 @@ export default function NetworkView() {
                 ? sm2Decrypt(String(data.payload), JSON.stringify(localSm2))
                 : await processAlgorithm({ algorithm, mode: "decrypt", input: String(data.payload), ...cipherKeys(algorithm, sessionKey) });
               if (!current()) return;
-              append({ direction: "in", text: plain, algorithm: algorithms.find((item) => item.id === algorithm)?.name, verified: md5(plain) === data.digest });
+              append({ direction: "in", text: plain, algorithm: algorithms.find((item) => item.id === algorithm)?.name, verified: md5(plain) === data.digest, cipher: String(data.payload) });
             } else if (data.type === "file") {
               const sessionKey = secretRef.current;
               if (!sessionKey) throw new Error("尚未获得 DH 会话密钥");
@@ -358,7 +359,7 @@ export default function NetworkView() {
       }
       if (socketRef.current !== socket || secretRef.current !== sessionKey || negotiatedRef.current !== algorithm) throw new Error("连接或算法已改变，请重新发送");
       sendWire({ type: "chat", algorithm, payload, digest: md5(plain), clientTag: crypto.randomUUID() });
-      append({ direction: "out", text: plain, algorithm: algorithms.find((item) => item.id === algorithm)?.name, verified: true });
+      append({ direction: "out", text: plain, algorithm: algorithms.find((item) => item.id === algorithm)?.name, verified: true, cipher: payload });
       setMessage("");
     } catch (reason) { setError(reason instanceof Error ? reason.message : "消息发送失败"); }
     finally { setSending(false); }

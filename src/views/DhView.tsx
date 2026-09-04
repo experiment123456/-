@@ -36,6 +36,48 @@ const EMPTY_SECRETS: MitmSecrets = {
 
 const wait = (duration: number) => new Promise((resolve) => window.setTimeout(resolve, duration));
 
+const DH_P = BigInt(
+  "0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3BE39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF6955817183995497CEA956AE515D2261898FA051015728E5A8AACAA68FFFFFFFFFFFFFFFF",
+);
+
+const NORMAL_STEPS = [
+  "公共参数",
+  "生成私钥",
+  "计算公钥",
+  "交换公钥",
+  "计算共享秘密",
+  "SHA-256 派生",
+  "结果校验",
+];
+
+const SMALL_EXAMPLE = {
+  p: 23,
+  g: 5,
+  alicePrivate: 6,
+  bobPrivate: 15,
+  alicePublic: 8,
+  bobPublic: 19,
+  shared: 2,
+};
+
+function modPowForTrace(base: bigint, exponent: bigint, modulus: bigint) {
+  let result = 1n;
+  let value = base % modulus;
+  let power = exponent;
+  while (power > 0n) {
+    if (power & 1n) result = (result * value) % modulus;
+    value = (value * value) % modulus;
+    power >>= 1n;
+  }
+  return result;
+}
+
+function rawDhSecret(privateKeyHex: string, peerPublicHex: string) {
+  const privateKey = BigInt(`0x${privateKeyHex}`);
+  const peerPublic = BigInt(`0x${peerPublicHex}`);
+  return modPowForTrace(peerPublic, privateKey, DH_P).toString(16).padStart(512, "0");
+}
+
 function shortened(value: string, visible: boolean) {
   if (!value || visible || value.length < 42) return value;
   return `${value.slice(0, 18)}${"•".repeat(18)}${value.slice(-12)}`;
@@ -55,10 +97,17 @@ export default function DhView() {
   const [modifiedMessage, setModifiedMessage] = useState("转账900元");
   const [events, setEvents] = useState<string[]>([]);
   const [step, setStep] = useState(0);
+  const [normalStep, setNormalStep] = useState(0);
+  const [normalEvents, setNormalEvents] = useState<string[]>([]);
+  const [aliceRawSecret, setAliceRawSecret] = useState("");
+  const [bobRawSecret, setBobRawSecret] = useState("");
   const [reveal, setReveal] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const matched = useMemo(() => Boolean(aliceSecret && aliceSecret === bobSecret), [aliceSecret, bobSecret]);
+  const matched = useMemo(
+    () => normalStep >= 7 && Boolean(aliceSecret && aliceSecret === bobSecret),
+    [aliceSecret, bobSecret, normalStep],
+  );
 
   const resetOutcomes = () => {
     setAliceSecret("");
@@ -68,6 +117,10 @@ export default function DhView() {
     setSignatureReport(null);
     setEvents([]);
     setStep(0);
+    setNormalStep(0);
+    setNormalEvents([]);
+    setAliceRawSecret("");
+    setBobRawSecret("");
     setError("");
   };
 
@@ -83,18 +136,106 @@ export default function DhView() {
     resetOutcomes();
   };
 
-  const exchange = async () => {
+  const runNormalStep = async () => {
+    if (busy || normalStep >= 7) return;
     setBusy(true);
     setError("");
     try {
+      if (normalStep === 0) {
+        setNormalStep(1);
+        setNormalEvents(["公开约定 RFC 3526 MODP 2048 位素数 p 与生成元 g = 2；它们无需保密。​"]);
+      } else if (normalStep === 1) {
+        const nextAlice = createDhParty();
+        const nextBob = createDhParty();
+        setAlice(nextAlice);
+        setBob(nextBob);
+        setNormalStep(2);
+        setNormalEvents((current) => [...current, "Alice 随机生成私钥 a，Bob 随机生成私钥 b；两把私钥始终保留在本地。​"]);
+      } else if (normalStep === 2) {
+        setNormalStep(3);
+        setNormalEvents((current) => [...current, "Alice 计算 A = gᵃ mod p，Bob 计算 B = gᵇ mod p，得到各自公钥。​"]);
+      } else if (normalStep === 3) {
+        setNormalStep(4);
+        setNormalEvents((current) => [...current, "Alice 将公钥 A 发给 Bob，Bob 将公钥 B 发给 Alice；私钥 a、b 没有传输。​"]);
+      } else if (normalStep === 4) {
+        const leftRaw = rawDhSecret(alice.privateKey, bob.publicKey);
+        const rightRaw = rawDhSecret(bob.privateKey, alice.publicKey);
+        setAliceRawSecret(leftRaw);
+        setBobRawSecret(rightRaw);
+        setNormalStep(5);
+        setNormalEvents((current) => [...current, "Alice 计算 Bᵃ mod p，Bob 计算 Aᵇ mod p；两端独立得到相同的原始共享秘密 S。​"]);
+      } else if (normalStep === 5) {
+        const [left, right] = await Promise.all([
+          completeDh(alice.privateKey, bob.publicKey),
+          completeDh(bob.privateKey, alice.publicKey),
+        ]);
+        setAliceSecret(left);
+        setBobSecret(right);
+        setNormalStep(6);
+        setNormalEvents((current) => [...current, "双方分别对 256 字节原始共享秘密执行 SHA-256，派生出 256 位会话密钥。​"]);
+      } else if (normalStep === 6) {
+        setNormalStep(7);
+        setNormalEvents((current) => [...current, "对比完成：Alice 与 Bob 的会话密钥完全一致，DH 密钥交换成功。​"]);
+      }
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "DH交换失败");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const runNormalAuto = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    setAliceSecret("");
+    setBobSecret("");
+    setAliceRawSecret("");
+    setBobRawSecret("");
+    setNormalEvents([]);
+    try {
+      setNormalStep(1);
+      setNormalEvents(["公开约定 RFC 3526 MODP 2048 位素数 p 与生成元 g = 2；它们无需保密。​"]);
+      await wait(700);
+
+      const nextAlice = createDhParty();
+      const nextBob = createDhParty();
+      setAlice(nextAlice);
+      setBob(nextBob);
+      setNormalStep(2);
+      setNormalEvents((current) => [...current, "Alice 随机生成私钥 a，Bob 随机生成私钥 b；两把私钥始终保留在本地。​"]);
+      await wait(700);
+
+      setNormalStep(3);
+      setNormalEvents((current) => [...current, "根据 A = gᵃ mod p 与 B = gᵇ mod p 计算出双方公钥。​"]);
+      await wait(800);
+
+      setNormalStep(4);
+      setNormalEvents((current) => [...current, "双方通过公开信道互换公钥 A、B，私钥从未离开本地。​"]);
+      await wait(1_000);
+
+      const leftRaw = rawDhSecret(nextAlice.privateKey, nextBob.publicKey);
+      const rightRaw = rawDhSecret(nextBob.privateKey, nextAlice.publicKey);
+      setAliceRawSecret(leftRaw);
+      setBobRawSecret(rightRaw);
+      setNormalStep(5);
+      setNormalEvents((current) => [...current, "双方分别计算 Bᵃ mod p 与 Aᵇ mod p，得到相同的原始共享秘密 S。​"]);
+      await wait(800);
+
       const [left, right] = await Promise.all([
-        completeDh(alice.privateKey, bob.publicKey),
-        completeDh(bob.privateKey, alice.publicKey),
+        completeDh(nextAlice.privateKey, nextBob.publicKey),
+        completeDh(nextBob.privateKey, nextAlice.publicKey),
       ]);
       setAliceSecret(left);
       setBobSecret(right);
+      setNormalStep(6);
+      setNormalEvents((current) => [...current, "对原始共享秘密执行 SHA-256，派生 256 位会话密钥。​"]);
+      await wait(750);
+
+      setNormalStep(7);
+      setNormalEvents((current) => [...current, "结果校验通过：Alice 与 Bob 的会话密钥完全一致。​"]);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "DH交换失败");
+      setError(reason instanceof Error ? reason.message : "DH自动演示失败");
     } finally {
       setBusy(false);
     }
@@ -237,7 +378,39 @@ export default function DhView() {
   const nextDisabled = busy || (mode === "mitm" ? step >= 5 : step >= 3);
 
   return (
-    <div className="app-panel panel-reveal soft-scroll h-full min-h-0 w-full overflow-y-auto rounded-[30px] p-5 sm:h-[96%] sm:w-[96%] sm:p-7 lg:p-9">
+    <div className="dh-readable app-panel panel-reveal soft-scroll h-full min-h-0 w-full overflow-y-auto rounded-[30px] p-5 sm:h-[96%] sm:w-[96%] sm:p-7 lg:p-9">
+      <style>{`
+        .dh-readable .eyebrow,.dh-readable .field-caption{font-size:.78rem;letter-spacing:.13em}
+        .dh-readable .code-line{font-size:.86rem;line-height:1.55;min-height:3rem}
+        .dh-readable button{font-size:.96rem}
+        .dh-readable .text-sm{font-size:1rem;line-height:1.75rem}
+        .dh-readable .dh-actor-grid .code-line{font-size:.94rem;line-height:1.65}
+        .dh-readable .dh-flow-line{min-height:3.5rem;font-size:1rem;gap:1rem}
+        .dh-readable .dh-flow-line svg{width:1.15rem;height:1.15rem}
+        .dh-readable .dh-signature-panel .text-lg,.dh-readable .dh-result-card .text-lg{font-size:1.25rem;line-height:1.75rem}
+        .dh-readable .dh-verdict-chip{padding:.65rem .9rem;font-size:.76rem}
+        .dh-readable .dh-message-editor textarea{font-size:1rem;line-height:1.7}
+        .dh-readable .dh-event-log,.dh-readable .dh-message-trace{padding:1.2rem}
+        .dh-readable .dh-event-log li{grid-template-columns:2rem minmax(0,1fr);gap:.75rem;font-size:1rem;line-height:1.75}
+        .dh-readable .dh-event-log li+li{margin-top:.7rem}
+        .dh-readable .dh-event-log li>span{width:1.75rem;height:1.75rem;font-size:.78rem}
+        .dh-readable .dh-message-trace{gap:.75rem}
+        .dh-readable .dh-message-trace>div{padding:.9rem 1rem}
+        .dh-readable .dh-message-trace>div>span{font-size:.76rem;line-height:1.4}
+        .dh-readable .dh-message-trace>div>code{margin-top:.55rem;font-size:.94rem;line-height:1.7}
+        .dh-normal-step{border:1px solid rgba(255,255,255,.1);background:rgba(8,18,29,.34);transition:.25s ease}
+        .dh-normal-step.is-current{border-color:rgba(184,255,226,.62);background:rgba(105,211,180,.13);box-shadow:0 0 24px rgba(86,217,178,.1)}
+        .dh-normal-step.is-done{border-color:rgba(184,255,226,.25);color:rgba(221,255,243,.86)}
+        .dh-normal-step-dot{display:grid;place-items:center;width:1.9rem;height:1.9rem;border-radius:999px;background:rgba(255,255,255,.08);font:700 .78rem/1 ui-monospace,monospace}
+        .dh-normal-step.is-current .dh-normal-step-dot,.dh-normal-step.is-done .dh-normal-step-dot{background:rgba(179,248,221,.92);color:#10251f}
+        .dh-public-channel{position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.1);background:rgba(5,14,24,.42)}
+        .dh-public-channel::before{content:"";position:absolute;left:15%;right:15%;top:50%;height:1px;background:linear-gradient(90deg,rgba(157,237,215,.2),rgba(157,237,215,.8),rgba(157,237,215,.2))}
+        .dh-key-packet{position:absolute;top:50%;z-index:1;transform:translateY(-50%);border:1px solid rgba(190,255,236,.62);border-radius:999px;background:#173b36;padding:.42rem .75rem;color:#d9fff3;font:700 .76rem/1 ui-monospace,monospace;opacity:0}
+        .dh-public-channel.is-active .dh-key-packet.is-a{animation:dh-send-right 1.8s ease-in-out infinite}
+        .dh-public-channel.is-active .dh-key-packet.is-b{animation:dh-send-left 1.8s ease-in-out infinite}
+        @keyframes dh-send-right{0%{left:14%;opacity:0}15%,85%{opacity:1}100%{left:76%;opacity:0}}
+        @keyframes dh-send-left{0%{right:14%;opacity:0}15%,85%{opacity:1}100%{right:76%;opacity:0}}
+      `}</style>
       <header className="flex flex-col gap-5 2xl:flex-row 2xl:items-end 2xl:justify-between">
         <div>
           <p className="eyebrow">KEY EXCHANGE / 02</p>
@@ -253,33 +426,125 @@ export default function DhView() {
           <button className="secondary-button" data-agent-id="dh.reveal" type="button" onClick={() => setReveal((value) => !value)}>
             {reveal ? <EyeOff /> : <Eye />} {reveal ? "隐藏完整值" : "显示完整值"}
           </button>
-          <button className="secondary-button" data-agent-id="dh.regenerate" type="button" onClick={regenerate}><RefreshCw />重新生成</button>
+          {mode !== "normal" && <button className="secondary-button" data-agent-id="dh.regenerate" type="button" onClick={regenerate}><RefreshCw />重新生成</button>}
         </div>
       </header>
 
       {mode === "normal" ? (
         <>
-          <div className="relative mt-7 grid gap-4 lg:grid-cols-2">
-            {partyCard("Alice", "ENCRYPTOR / 加密端", alice, aliceSecret)}
-            <div className={`exchange-pulse ${matched ? "is-complete" : ""}`} aria-hidden="true"><span /></div>
-            {partyCard("Bob", "DECRYPTOR / 解密端", bob, bobSecret)}
+          <section className="workspace-card mt-7 rounded-[26px] p-5 sm:p-6">
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+              <div>
+                <p className="eyebrow">NORMAL EXCHANGE / 七步教学演示</p>
+                <h2 className="mt-2 text-2xl sm:text-3xl">从公开参数到相同会话密钥</h2>
+                <p className="mt-2 text-sm text-white/55">每一步都会保留结果。上层用小数字解释原理，下层用 RFC 3526 参数执行真实运算。</p>
+              </div>
+              <span className="rounded-full border border-white/10 bg-black/15 px-4 py-2 text-base text-white/70">
+                {normalStep === 0 ? "尚未开始" : normalStep >= 7 ? "演示完成" : `当前：${NORMAL_STEPS[normalStep - 1]}`}
+              </span>
+            </div>
+            <div className="mt-5 grid gap-2 sm:grid-cols-2 xl:grid-cols-7">
+              {NORMAL_STEPS.map((label, index) => {
+                const number = index + 1;
+                return (
+                  <div key={label} className={`dh-normal-step flex items-center gap-2 rounded-2xl px-3 py-3 ${normalStep === number ? "is-current" : ""} ${normalStep > number ? "is-done" : ""}`}>
+                    <span className="dh-normal-step-dot">{normalStep > number ? "✓" : number}</span>
+                    <span className="text-[0.9rem] font-medium">{label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          <div className="mt-4 grid gap-4 xl:grid-cols-[0.82fr_1.18fr]">
+            <section className="workspace-card rounded-[26px] p-5 sm:p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div><p className="eyebrow">TEACHING EXAMPLE / 小数字实例</p><h2 className="mt-2 text-2xl">看得懂的 DH 算式</h2></div>
+                <span className="rounded-full border border-emerald-200/20 bg-emerald-200/10 px-3 py-1.5 text-sm text-emerald-100">仅用于教学</span>
+              </div>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <div className={`rounded-2xl border p-4 ${normalStep >= 1 ? "border-emerald-200/25 bg-emerald-200/[.07]" : "border-white/10 bg-black/10 opacity-45"}`}>
+                  <span className="field-caption">STEP 1 / 公共参数</span>
+                  <p className="mt-2 text-xl font-semibold">p = {SMALL_EXAMPLE.p}，g = {SMALL_EXAMPLE.g}</p>
+                  <p className="mt-1 text-sm text-white/50">所有参与者都可以知道</p>
+                </div>
+                <div className={`rounded-2xl border p-4 ${normalStep >= 2 ? "border-emerald-200/25 bg-emerald-200/[.07]" : "border-white/10 bg-black/10 opacity-45"}`}>
+                  <span className="field-caption">STEP 2 / 私钥</span>
+                  <p className="mt-2 text-xl font-semibold">a = {SMALL_EXAMPLE.alicePrivate}，b = {SMALL_EXAMPLE.bobPrivate}</p>
+                  <p className="mt-1 text-sm text-white/50">各自保存，绝不发送</p>
+                </div>
+                <div className={`rounded-2xl border p-4 sm:col-span-2 ${normalStep >= 3 ? "border-emerald-200/25 bg-emerald-200/[.07]" : "border-white/10 bg-black/10 opacity-45"}`}>
+                  <span className="field-caption">STEP 3 / 计算公钥</span>
+                  <div className="mt-2 grid gap-2 text-lg sm:grid-cols-2"><code>A = 5⁶ mod 23 = {SMALL_EXAMPLE.alicePublic}</code><code>B = 5¹⁵ mod 23 = {SMALL_EXAMPLE.bobPublic}</code></div>
+                </div>
+                <div className={`rounded-2xl border p-4 sm:col-span-2 ${normalStep >= 5 ? "border-emerald-200/25 bg-emerald-200/[.07]" : "border-white/10 bg-black/10 opacity-45"}`}>
+                  <span className="field-caption">STEP 5 / 独立计算</span>
+                  <div className="mt-2 grid gap-2 text-lg sm:grid-cols-2"><code>Alice：19⁶ mod 23 = {SMALL_EXAMPLE.shared}</code><code>Bob：8¹⁵ mod 23 = {SMALL_EXAMPLE.shared}</code></div>
+                  <p className="mt-3 text-base text-emerald-100">双方没有传输秘密值，却都得到了 S = {SMALL_EXAMPLE.shared}</p>
+                </div>
+              </div>
+            </section>
+
+            <section className="workspace-card rounded-[26px] p-5 sm:p-6">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div><p className="eyebrow">RFC 3526 / 真实 2048 位运算</p><h2 className="mt-2 text-2xl">浏览器实际计算结果</h2></div>
+                <span className="rounded-full border border-sky-200/20 bg-sky-200/10 px-3 py-1.5 text-sm text-sky-100">p：2048 bit · g：2</span>
+              </div>
+              <div className={`mt-5 rounded-2xl border border-white/10 bg-black/10 p-4 ${normalStep >= 1 ? "" : "opacity-45"}`}>
+                <span className="field-caption">PUBLIC PARAMETERS / 公共参数</span>
+                <div className="code-line mt-2">p = {normalStep >= 1 ? shortened(DH_P.toString(16), reveal) : "等待展示公开素数…"}</div>
+                <p className="mt-2 text-base text-white/60">g = 2　·　模数 p 与生成元 g 可以在公开信道传输</p>
+              </div>
+              <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                {[
+                  { name: "Alice", privateKey: alice.privateKey, publicKey: alice.publicKey, peerPublic: bob.publicKey, raw: aliceRawSecret, secret: aliceSecret, formula: "A = gᵃ mod p", derive: "Sₐ = Bᵃ mod p" },
+                  { name: "Bob", privateKey: bob.privateKey, publicKey: bob.publicKey, peerPublic: alice.publicKey, raw: bobRawSecret, secret: bobSecret, formula: "B = gᵇ mod p", derive: "Sᵦ = Aᵇ mod p" },
+                ].map((party) => (
+                  <article key={party.name} className="rounded-2xl border border-white/10 bg-black/10 p-4">
+                    <div className="flex items-center justify-between"><h3 className="text-2xl italic">{party.name}</h3><span className={`connection-orb ${normalStep >= 7 ? "is-online" : ""}`} /></div>
+                    <div className="mt-4 space-y-3">
+                      <div><span className="field-caption">私钥（不传输）</span><div className="code-line mt-2">{normalStep >= 2 ? shortened(party.privateKey, reveal) : "等待生成…"}</div></div>
+                      <div><span className="field-caption">公钥 · {party.formula}</span><div className="code-line mt-2">{normalStep >= 3 ? shortened(party.publicKey, reveal) : "等待计算…"}</div></div>
+                      <div><span className="field-caption">收到的对方公钥</span><div className="code-line mt-2">{normalStep >= 4 ? shortened(party.peerPublic, reveal) : "等待公开交换…"}</div></div>
+                      <div><span className="field-caption">原始共享秘密 · {party.derive}</span><div className="code-line mt-2">{normalStep >= 5 ? shortened(party.raw, reveal) : "等待独立计算…"}</div></div>
+                      <div><span className="field-caption">SHA-256 会话密钥</span><div className={`code-line mt-2 ${normalStep >= 6 ? "text-emerald-100" : ""}`}>{normalStep >= 6 ? shortened(party.secret, reveal) : "等待派生…"}</div></div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
           </div>
-          <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_auto]">
+
+          <div className={`dh-public-channel mt-4 min-h-24 rounded-[24px] px-5 py-4 ${normalStep === 4 ? "is-active" : ""}`} aria-label="双方公钥交换动画">
+            <div className="relative z-[2] flex h-full min-h-16 items-center justify-between text-lg font-semibold"><span>Alice</span><span className="rounded-full bg-black/40 px-4 py-2 text-base text-white/65">{normalStep < 4 ? "等待交换公钥" : normalStep === 4 ? "公开信道正在传输" : "公钥交换完成"}</span><span>Bob</span></div>
+            <span className="dh-key-packet is-a">公钥 A →</span><span className="dh-key-packet is-b">← 公钥 B</span>
+          </div>
+
+          <section className="workspace-card mt-4 rounded-[26px] p-5 sm:p-6">
+            <div className="flex items-center gap-2 text-base text-white/70"><MessageSquareText className="h-5 w-5" />过程记录</div>
+            <ol className="mt-4 grid gap-2 lg:grid-cols-2" aria-live="polite">
+              {normalEvents.length ? normalEvents.map((event, index) => <li key={`${index}-${event}`} className="flex gap-3 rounded-2xl border border-white/10 bg-black/10 px-4 py-3"><span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white/10 text-sm font-bold">{index + 1}</span><p className="text-base leading-7 text-white/70">{event}</p></li>) : <li className="text-base text-white/45">点击“下一步”逐项观察完整计算过程，或点击“一键演示”。</li>}
+            </ol>
+          </section>
+
+          <div className="mt-4 grid gap-4 xl:grid-cols-[1fr_auto]">
             <div className={`verification-card rounded-[24px] p-5 ${matched ? "is-verified" : ""}`} data-agent-id="dh.normal.result" data-agent-state={matched ? "complete" : "idle"}>
               <div className="flex items-start gap-4">
                 <div className="verification-icon">{matched ? <Check /> : <ShieldCheck />}</div>
                 <div>
-                  <p className="text-lg">{matched ? "交换成功，两端密钥一致" : "准备交换公开参数"}</p>
+                  <p className="text-xl">{matched ? "交换成功，两端密钥一致" : normalStep >= 6 ? "会话密钥已派生，等待最终对比" : "DH 分步演示进行中"}</p>
                   <p className="mt-1 text-sm leading-6 text-white/45">
-                    {matched ? `会话指纹：${aliceSecret.slice(0, 12).toUpperCase()} · ${aliceSecret.slice(-12).toUpperCase()}` : "点击右侧按钮模拟两台设备的完整 DH 交换与 SHA-256 派生。"}
+                    {matched ? `会话指纹：${aliceSecret.slice(0, 12).toUpperCase()} · ${aliceSecret.slice(-12).toUpperCase()}` : `进度 ${normalStep} / 7：${normalStep ? NORMAL_STEPS[Math.min(normalStep, 7) - 1] : "准备展示公共参数"}`}
                   </p>
                 </div>
                 {matched && <button className="icon-button ml-auto" data-agent-id="dh.copy-secret" type="button" onClick={() => void navigator.clipboard.writeText(aliceSecret)} title="复制共享密钥"><Copy /></button>}
               </div>
             </div>
-            <button className="primary-button min-w-52" data-agent-id="dh.exchange" type="button" onClick={() => void exchange()} disabled={busy}>
-              <RefreshCw className={busy ? "animate-spin" : ""} />{busy ? "正在计算…" : "开始公钥交换"}
-            </button>
+            <div className="flex flex-wrap gap-2 xl:justify-end">
+              <button className="secondary-button" data-agent-id="dh.regenerate" type="button" onClick={regenerate} disabled={busy}><RefreshCw />重新开始</button>
+              <button className="secondary-button" data-agent-id="dh.normal.next" type="button" onClick={() => void runNormalStep()} disabled={busy || normalStep >= 7}><StepForward />{normalStep === 0 ? "开始 / 下一步" : normalStep >= 7 ? "已完成" : "下一步"}</button>
+              <button className="primary-button min-w-40" data-agent-id="dh.exchange" type="button" onClick={() => void runNormalAuto()} disabled={busy}><Play />{busy ? "演示进行中…" : "一键演示"}</button>
+            </div>
           </div>
         </>
       ) : (

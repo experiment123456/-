@@ -96,6 +96,34 @@ try {
   await page.getByRole("button", { name: "进入 Agent 对话", exact: true }).click();
   await page.locator(".agent-use-page").waitFor();
   results.staticWorkspace = await page.getByRole("heading", { name: "今天想探索什么？" }).isVisible();
+  results.cornerGifsLoaded = await page.locator(".agent-corner-gif").evaluateAll((images) =>
+    images.length === 2 && images.every((image) => image.complete && image.naturalWidth === 240));
+  results.cornerGifsNoOverlap = true;
+  for (const viewport of [
+    { width: 2555, height: 1420 }, { width: 1440, height: 960 },
+    { width: 1280, height: 720 }, { width: 768, height: 1024 },
+    { width: 390, height: 844 }, { width: 375, height: 667 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.waitForTimeout(200);
+    const layout = await page.evaluate(() => {
+      const gifs = [...document.querySelectorAll(".agent-corner-gif")];
+      const content = [...document.querySelectorAll(".agent-use-nav, .agent-use-workspace, .agent-use-footer")]
+        .filter((element) => getComputedStyle(element).display !== "none");
+      const overlaps = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+      return gifs.every((gif) => {
+        const bounds = gif.getBoundingClientRect();
+        return bounds.width > 0 && bounds.left >= 0 && bounds.right <= innerWidth
+          && bounds.top >= 0 && bounds.bottom <= innerHeight
+          && getComputedStyle(gif).pointerEvents === "none"
+          && content.every((element) => !overlaps(bounds, element.getBoundingClientRect()));
+      });
+    });
+    results.cornerGifsNoOverlap &&= layout;
+    assert.ok(layout, `GIF overlaps content or leaves viewport at ${viewport.width}x${viewport.height}`);
+    await page.screenshot({ path: join(screenshots, `agent-gifs-${viewport.width}.png`) });
+  }
+  await page.setViewportSize({ width: 1440, height: 960 });
   results.staticPrompts = await page.getByRole("button", { name: "带我演示 AES", exact: true }).isVisible()
     && await page.getByRole("button", { name: "讲解 DH 密钥交换", exact: true }).isVisible();
   results.mockStatus = await page.getByText("本地演示模式", { exact: true }).isVisible();

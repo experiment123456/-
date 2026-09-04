@@ -109,7 +109,7 @@ export default function AuthView({ onAuthenticated }: { onAuthenticated: (user: 
 
         <button className="auth-submit" type="submit" disabled={busy}>
           {busy ? <LoaderCircle className="animate-spin" /> : <LockKeyhole />}
-          {busy ? "正在建立安全会话" : mode === "login" ? "进入实验平台" : "创建并进入"}
+          <span>{busy ? "正在建立安全会话" : mode === "login" ? "进入实验平台" : "创建并进入"}</span>
           {!busy && <ArrowRight />}
         </button>
 

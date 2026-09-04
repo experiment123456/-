@@ -1474,12 +1474,15 @@ button:disabled {
 }
 
 .auth-submit {
-  display: flex;
+  display: grid;
+  grid-template-columns: 15px minmax(0, 1fr) 15px;
   width: 100%;
   min-height: 50px;
   align-items: center;
   justify-content: center;
   gap: 9px;
+  padding-inline: 16px;
+  text-align: center;
   border-radius: 16px;
   color: #07161c;
   background: linear-gradient(135deg, rgba(242, 253, 255, 0.96), rgba(179, 226, 238, 0.92));
@@ -1504,8 +1507,7 @@ button:disabled {
 }
 
 .auth-submit svg:last-child {
-  margin-left: auto;
-  margin-right: 16px;
+  grid-column: 3;
 }
 
 .account-header {
@@ -5857,4 +5859,53 @@ button:disabled {
   color: rgba(232, 253, 247, 0.82);
   font-size: 12px;
   font-weight: 600;
+}
+
+/* GIFs occupy their own gutters, never the chat or navigation hit areas. */
+.agent-use-layout--stickers {
+  --agent-sticker-size: clamp(72px, 8vw, 144px);
+  grid-template-columns: var(--agent-sticker-size) minmax(0, 1080px) var(--agent-sticker-size);
+  grid-template-rows: minmax(0, 1fr);
+  justify-content: space-between;
+  column-gap: clamp(12px, 1.4vw, 24px);
+  padding-inline: clamp(12px, 2vw, 32px);
+}
+
+.agent-corner-gif {
+  display: block;
+  width: var(--agent-sticker-size);
+  height: var(--agent-sticker-size);
+  object-fit: contain;
+  border-radius: 18px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.agent-corner-gif--start { grid-area: 1 / 1; align-self: start; }
+.agent-corner-gif--end { grid-area: 1 / 3; align-self: end; }
+.agent-use-layout--stickers > .agent-use-workspace { grid-area: 1 / 2; }
+
+@media (max-width: 760px) {
+  .agent-use-layout--stickers {
+    --agent-sticker-size: 56px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 8px;
+    overflow-y: auto;
+  }
+
+  .agent-corner-gif { border-radius: 10px; }
+  .agent-corner-gif--start { grid-area: 1 / 1; justify-self: start; }
+  .agent-corner-gif--end { grid-area: 3 / 1; justify-self: end; }
+  .agent-use-layout--stickers > .agent-use-workspace {
+    grid-area: 2 / 1;
+    height: 100%;
+    min-height: 340px;
+  }
+  .agent-use-layout--stickers .agent-chat-panel {
+    min-height: 0;
+    max-height: none;
+    height: 100%;
+  }
 }

@@ -1,0 +1,80 @@
+.pet-cat {
+  position: fixed;
+  z-index: 85;
+  top: 0;
+  left: 0;
+  width: 104px;
+  height: 114px;
+  visibility: hidden;
+  isolation: isolate;
+  --pet-facing: 1;
+}
+.pet-cat-controls {
+  display: flex; justify-content: center; gap: 3px; height: 24px;
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity 160ms ease;
+}
+.pet-cat:hover .pet-cat-controls,
+.pet-cat:has(:focus-visible) .pet-cat-controls {
+  opacity: 1; visibility: visible; pointer-events: auto;
+}
+@media (hover: none) {
+  .pet-cat:focus-within .pet-cat-controls {
+    opacity: 1; visibility: visible; pointer-events: auto;
+  }
+}
+.pet-cat-controls button {
+  display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
+  border: 1px solid #d9c6a8; background: #fff9ecef; color: #825e3e; cursor: pointer;
+  box-shadow: 0 2px 6px #60451b15;
+}
+.pet-cat-controls svg { width: 12px; height: 12px; }
+.pet-cat-controls button:hover { background: #f8ddb0; }
+.pet-cat-touch { display: block; width: 100%; height: 90px; padding: 0; border: 0; background: none; cursor: grab; touch-action: none; }
+.pet-cat-touch:active { cursor: grabbing; }
+.pet-cat button:focus-visible { outline: 2px solid #61a6a0; outline-offset: 3px; }
+.pet-cat-art { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 3px 3px #4d362b24); }
+.pet-cat-body { transform-origin: 60px 70px; transform: scaleX(var(--pet-facing)); }
+.pet-cat-tail { transform-origin: 88px 85px; animation: pet-tail 3.2s ease-in-out infinite; }
+.pet-cat-closed-eyes, .pet-cat-hearts, .pet-cat-yarn, .pet-cat-zzz { opacity: 0; }
+.pet-cat-head { transform-origin: 60px 70px; }
+.pet-cat[data-mood="walk"] .pet-cat-paw { animation: pet-step .44s ease-in-out infinite alternate; }
+.pet-cat[data-mood="walk"] .pet-cat-paw--right { animation-delay: -.44s; }
+.pet-cat[data-mood="happy"] .pet-cat-eyes, .pet-cat[data-mood="sleep"] .pet-cat-eyes { opacity: 0; }
+.pet-cat[data-mood="happy"] .pet-cat-closed-eyes, .pet-cat[data-mood="sleep"] .pet-cat-closed-eyes { opacity: 1; }
+.pet-cat[data-mood="happy"] .pet-cat-head { animation: pet-nuzzle .6s ease-in-out infinite alternate; }
+.pet-cat[data-mood="happy"] .pet-cat-hearts { animation: pet-hearts 1.25s ease-out infinite; }
+.pet-cat[data-mood="play"] .pet-cat-yarn { opacity: 1; transform-origin: 20px 90px; animation: pet-yarn .7s ease-in-out infinite alternate; }
+.pet-cat[data-mood="play"] .pet-cat-paw--left { animation: pet-bat .7s ease-in-out infinite; transform-origin: 48px 82px; }
+.pet-cat[data-mood="sleep"] .pet-cat-zzz { opacity: .8; animation: pet-hearts 2s ease-in-out infinite; }
+.pet-cat-speech {
+  position: fixed; z-index: 86; visibility: hidden; width: 184px; padding: 10px 12px;
+  border: 1px solid #dfc8a1; border-radius: 15px; background: #fffcf3f5;
+  box-shadow: 0 7px 24px #3320081a; color: #715337; pointer-events: none;
+  font: 12px/1.55 "Microsoft YaHei", sans-serif;
+}
+.pet-cat-speech b { display: block; font-size: 11px; color: #967040; }
+.pet-cat-speech b span { font-weight: 400; font-size: 9px; }
+.pet-cat-speech p { margin: 4px 0 0; }
+/* A small reserved perch on narrow chat screens keeps both GIFs and controls clear. */
+@media (max-width: 760px) {
+  .pet-cat { width: 76px; height: 90px; }
+  .pet-cat-touch { height: 66px; }
+  .pet-cat-controls { gap: 1px; }
+  .pet-cat-speech { width: 158px; padding: 7px 9px; font-size: 11px; }
+  .agent-use-page:has(.pet-cat) .agent-use-layout--stickers { grid-template-rows: 102px minmax(0, 1fr) auto; }
+}
+@media (max-width: 620px) {
+  .agent-use-page .agent-use-nav > div > button { font-size: 0; flex-shrink: 0; }
+  .agent-use-nav .pet-recall-text { display: none; }
+}
+@keyframes pet-tail { 50% { transform: rotate(-9deg); } }
+@keyframes pet-step { to { transform: translateY(-5px) rotate(3deg); } }
+@keyframes pet-nuzzle { to { transform: rotate(-5deg) translateY(1px); } }
+@keyframes pet-hearts { 0% { opacity: 0; transform: translateY(3px); } 35% { opacity: 1; } 100% { opacity: 0; transform: translateY(-8px); } }
+@keyframes pet-yarn { to { transform: translateX(12px) rotate(70deg); } }
+@keyframes pet-bat { 50% { transform: rotate(20deg) translateX(-3px); } }
+@media (prefers-reduced-motion: reduce) {
+  .pet-cat * { animation: none !important; }
+  .pet-cat[data-mood="happy"] .pet-cat-hearts { opacity: 1; }
+}

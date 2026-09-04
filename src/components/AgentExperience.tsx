@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
+import PetCat from "./PetCat";
 import {
   ArrowLeft,
   ArrowUp,
   BookOpen,
   Bot,
   BrainCircuit,
+  Cat,
   CircleStop,
   Compass,
   GripHorizontal,
@@ -163,6 +165,13 @@ export default function AgentExperience({ mode, userId, userName, onNavigate }: 
   const [configured, setConfigured] = useState<boolean | null>(null);
   const [usingAgent, setUsingAgent] = useState(false);
   const [sourceAtEnd, setSourceAtEnd] = useState(false);
+  const [petVisible, setPetVisible] = useState(() => {
+    try { return sessionStorage.getItem("lumora-pet-dismissed") !== "true"; } catch { return true; }
+  });
+  const togglePet = (visible: boolean) => {
+    setPetVisible(visible);
+    try { sessionStorage.setItem("lumora-pet-dismissed", String(!visible)); } catch { /* Memory state still works when storage is blocked. */ }
+  };
   const [guide, setGuide] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyBusy, setHistoryBusy] = useState(false);
@@ -782,13 +791,14 @@ export default function AgentExperience({ mode, userId, userName, onNavigate }: 
         <iframe
           ref={sourceFrameRef}
           className="agent-showcase-frame"
-          src="/active-theory/frame.html?v=lumora-agent-v17"
+          src="/active-theory/frame.html?v=lumora-agent-v18"
           title="Lumora Agent 动态作品空间"
           sandbox="allow-scripts allow-same-origin"
         />
         <header className="agent-showcase-header">
           <div className="agent-showcase-actions">
             <button type="button" onClick={() => onNavigate("innovation")}><ArrowLeft />返回创新界面</button>
+            {!petVisible && <button type="button" onClick={() => togglePet(true)}>召唤小猫</button>}
           </div>
           <span>LUMORA 智能导师 / 互动展厅</span>
         </header>
@@ -798,6 +808,7 @@ export default function AgentExperience({ mode, userId, userName, onNavigate }: 
             <Bot /><span>进入 Agent 对话</span><small>LUMORA 智能导师 / 互动展厅</small>
           </button>
         )}
+        {petVisible && <PetCat surface="showcase" atEnd={sourceAtEnd} onClose={() => togglePet(false)} />}
       </div>
     );
   }
@@ -808,12 +819,14 @@ export default function AgentExperience({ mode, userId, userName, onNavigate }: 
         <button className="agent-at-brand" type="button" onClick={() => setUsingAgent(false)}><span>LU</span><b>Lumora 智能导师</b><small>静态工作区 / 06</small></button>
         <div>
           <span>{userName ? `${userName}，欢迎回来` : "AI 密码学导师"}</span>
+          {!petVisible && <button type="button" aria-label="召唤小猫" onClick={() => togglePet(true)}><Cat /><span className="pet-recall-text">召唤小猫</span></button>}
           <button type="button" onClick={() => setUsingAgent(false)}><ArrowLeft />返回动态展厅</button>
           <button className="agent-use-exit" type="button" onClick={() => { setActivated(true); setMinimized(false); onNavigate("innovation"); }}><X />退出到创新页</button>
         </div>
       </header>
 
-      <main className="agent-use-layout">
+      <main className="agent-use-layout agent-use-layout--stickers">
+        <img className="agent-corner-gif agent-corner-gif--start" src="/assets/agent-stickers/ai-together.gif" width="240" height="240" alt="" aria-hidden="true" draggable={false} />
         <section className="agent-use-workspace">
           <div className="agent-use-workspace-title">
             <span>实时导师 / 静态模式</span>
@@ -822,11 +835,13 @@ export default function AgentExperience({ mode, userId, userName, onNavigate }: 
           </div>
           {chat}
         </section>
+        <img className="agent-corner-gif agent-corner-gif--end" src="/assets/agent-stickers/world-of-ai.gif" width="240" height="240" alt="" aria-hidden="true" draggable={false} />
       </main>
 
       <footer className="agent-use-footer">
         <span><BrainCircuit />感知当前界面</span><i /><span><Compass />规划教学步骤</span><i /><span><Play />执行安全工具</span><i /><span><BookOpen />解释执行结果</span>
       </footer>
+      {petVisible && <PetCat surface="chat" busy={busy} onClose={() => togglePet(false)} />}
     </div>
   );
 }

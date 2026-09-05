@@ -20,23 +20,17 @@ page.on("pageerror", (error) => errors.push(error.message));
 const results = {};
 try {
   await page.goto(`${base}#innovation`, { waitUntil: "domcontentloaded" });
-  await page.getByRole("heading", { name: "AI 智能导师" }).waitFor();
+  await page.getByRole("heading", { name: /让好奇心，潜入深海/ }).waitFor();
 
   results.route = page.url().endsWith("#innovation");
-  results.title = await page.getByRole("heading", { name: "AI 智能导师" }).isVisible();
-  results.caustics = await page.locator(".innovation-caustics").count() === 2;
-  results.bubbles = await page.locator(".innovation-bubble").count() === 24;
+  results.title = await page.getByRole("heading", { name: /让好奇心，潜入深海/ }).isVisible();
+  await page.locator(".reef-water.is-ready").waitFor();
+  results.reefLoaded = await page.locator(".reef-water").evaluate((canvas) => canvas.width > 0 && canvas.height > 0);
+  results.localBackground = await page.locator(".reef-background").evaluate((element) => getComputedStyle(element).backgroundImage.includes("/assets/ocean/innovation-reef-no-fish.png"));
   results.jellyfish = await page.locator(".ocean-jellyfish").count() === 6;
-  results.glass = await page.locator(".innovation-main-panel").evaluate((element) => {
-    const style = getComputedStyle(element);
-    const backdrop = style.getPropertyValue("backdrop-filter") || style.getPropertyValue("-webkit-backdrop-filter");
-    return {
-      applied: backdrop !== "none" && backdrop !== "" && Number.parseFloat(style.borderRadius) >= 30,
-      backdrop,
-      borderRadius: style.borderRadius,
-    };
-  });
-
+  results.onlyNecessaryButtons = await page.locator(".reef-page button").count() === 4;
+  results.noPreviewControls = await page.locator('.reef-page input[type="range"]').count() === 0;
+  results.noDuplicateMusicPrompt = await page.locator('.home-music-notice').count() === 0;
   await page.waitForTimeout(250);
   const firstJelly = page.locator(".ocean-jellyfish").first();
   const transformBeforeCruise = await firstJelly.evaluate((element) => element.style.transform);
@@ -68,7 +62,7 @@ try {
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(180);
-  results.mobileTitle = await page.getByRole("heading", { name: "AI 智能导师" }).isVisible();
+  results.mobileTitle = await page.getByRole("heading", { name: /让好奇心，潜入深海/ }).isVisible();
   results.mobileAgentEntry = await page.getByRole("button", { name: "进入 AI 导师", exact: true }).isVisible();
   results.mobileImageEntry = await page.getByRole("button", { name: "进入图片实验", exact: true }).isVisible();
   results.mobileOverflow = await page.evaluate(() => ({
@@ -93,7 +87,7 @@ try {
 
   await page.goto(base, { waitUntil: "domcontentloaded" });
   await page.locator('nav[aria-label="主导航"]').getByRole("button", { name: "AI 创新", exact: true }).click();
-  await page.getByRole("heading", { name: "AI 智能导师" }).waitFor();
+  await page.getByRole("heading", { name: /让好奇心，潜入深海/ }).waitFor();
   results.homeEntry = page.url().endsWith("#innovation");
   results.homeMusicContinues = await page.locator('audio[src="/assets/komorebi.mp3"]').evaluate((media) => !media.paused);
   results.frameTiming = await page.evaluate(() => new Promise((resolve) => {
@@ -116,7 +110,7 @@ try {
 
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(`${base}#innovation`, { waitUntil: "domcontentloaded" });
-  await page.getByRole("heading", { name: "AI 智能导师" }).waitFor();
+  await page.getByRole("heading", { name: /让好奇心，潜入深海/ }).waitFor();
   results.reducedMotionJellyfish = await page.locator(".ocean-jellyfish").count() === 6;
   await page.mouse.move(0, 0);
   const reducedJelly = page.locator(".ocean-jellyfish").first();
@@ -136,10 +130,12 @@ try {
 const booleans = [
   results.route,
   results.title,
-  results.caustics,
-  results.bubbles,
+  results.reefLoaded,
+  results.localBackground,
   results.jellyfish,
-  results.glass?.applied,
+  results.onlyNecessaryButtons,
+  results.noPreviewControls,
+  results.noDuplicateMusicPrompt,
   results.mouseEscape,
   results.homeEntryCount === 1,
   results.agentEntryCount === 1,

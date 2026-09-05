@@ -491,7 +491,7 @@ function App() {
         <button type="button" className={`liquid-glass !absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full text-white transition-all duration-500 ${menuOpen ? "scale-100 opacity-100" : "scale-75 opacity-0"}`} onClick={() => setMenuOpen(false)} aria-label="关闭导航"><X className="h-5 w-5" /></button>
       </div>
 
-      {!isLoginView && homeMusicEnabled && (homeMusicNeedsAction || homeMusicError) && (
+      {!isLoginView && !isInnovationView && homeMusicEnabled && (homeMusicNeedsAction || homeMusicError) && (
         <button className={`auth-sound-gate home-music-notice ${homeMusicError ? "is-error" : ""}`} type="button" data-music-control data-ripple-block onClick={toggleHomeMusic}>
           <span><Volume2 /></span>
           <span><b>{homeMusicError ? "重新加载背景音乐" : "开启背景音乐"}</b><small>{homeMusicError ? "音乐加载失败，请确认完整下载素材后重试" : "点击开启音乐，之后切换实验页面会继续播放"}</small></span>

@@ -82,6 +82,11 @@ try {
 
   await page.goto(`${base}#innovation`, { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "进入图片实验", exact: true }).click({ force: true });
+  await page.getByRole("dialog", { name: "图片安全实验室" }).waitFor();
+  results.imagePreviewOpen = await page.getByRole("dialog", { name: "图片安全实验室" }).isVisible();
+  results.imagePreviewKeepsRoute = page.url().endsWith("#innovation");
+  results.imagePreviewCapabilities = await page.locator(".image-lab-dialog-capabilities > span").count() === 4;
+  await page.getByRole("button", { name: "进入互动图片实验室", exact: true }).click();
   await page.waitForTimeout(500);
   results.imageRoute = page.url().endsWith("#ocean");
 
@@ -150,6 +155,9 @@ const booleans = [
   results.agentRoute,
   results.agentShowcaseFirst,
   results.agentDialogHiddenInitially,
+  results.imagePreviewOpen,
+  results.imagePreviewKeepsRoute,
+  results.imagePreviewCapabilities,
   results.imageRoute,
   results.homeEntry,
   results.homeMusicContinues,

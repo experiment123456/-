@@ -33,6 +33,34 @@
           "at": "2026-08-31T13:10:15.332Z"
         }
       ]
+    },
+    {
+      "id": "b2bec2d3-c823-42c5-abe9-97884d348a4e",
+      "username": "Kim",
+      "displayName": "Kim",
+      "salt": "bda1267314eb5b25d3282e7a7645dc06",
+      "passwordHash": "15c57e3a1eca007b686f04a8ac43921fcd0c7deb4a7d01cac5054bcba16136ff5ccdfb3765ea27e8e2a400203f72b252dad123f8811e9760667181a4fe75fddb",
+      "createdAt": "2026-09-05T07:29:30.238Z",
+      "lastLoginAt": "2026-09-05T12:53:17.781Z",
+      "settings": {
+        "backgroundAutoplay": true,
+        "ripplesEnabled": true,
+        "reducedMotion": false
+      },
+      "activity": [
+        {
+          "id": "c9042497-0461-46a8-8a44-c316752a98d6",
+          "label": "账户登录",
+          "detail": "新的浏览器会话已建立",
+          "at": "2026-09-05T12:53:17.783Z"
+        },
+        {
+          "id": "ecbc44cf-7f2f-4f83-9630-ec261f8219d3",
+          "label": "账户创建",
+          "detail": "已启用安全实验档案与界面偏好同步",
+          "at": "2026-09-05T07:29:30.241Z"
+        }
+      ]
     }
   ]
 }

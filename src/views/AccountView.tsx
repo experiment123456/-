@@ -66,8 +66,8 @@ export default function AccountView({ user, onUserChange, onLogout }: {
         <div className="account-avatar">{user.displayName.slice(0, 1).toLocaleUpperCase()}</div>
         <div>
           <p className="eyebrow">ACCOUNT / SECURE PROFILE</p>
-          <h1 className="mt-1 text-3xl sm:text-5xl">{user.displayName}</h1>
-          <p className="mt-1 text-xs text-white/38">@{user.username}</p>
+          <h1 className="mt-1 text-4xl text-white/95 sm:text-5xl">{user.displayName}</h1>
+          <p className="mt-1 text-sm text-white/65">@{user.username}</p>
         </div>
         <button className="secondary-button ml-auto" type="button" onClick={onLogout}><LogOut />退出登录</button>
       </div>
@@ -92,7 +92,7 @@ export default function AccountView({ user, onUserChange, onLogout }: {
           </div>
           <div className="mt-5 flex items-center gap-3">
             <button className="primary-button" type="submit" disabled={busy}>{busy ? <LoaderCircle className="animate-spin" /> : <Save />}{busy ? "正在保存" : "保存偏好"}</button>
-            <span className="text-xs text-emerald-100/60" aria-live="polite">{notice}</span>
+            <span className="text-sm text-emerald-100/80" aria-live="polite">{notice}</span>
           </div>
         </section>
 
@@ -110,7 +110,7 @@ export default function AccountView({ user, onUserChange, onLogout }: {
           <div className="account-timeline mt-5">
             {activity.length ? activity.slice(0, 6).map((item) => (
               <div key={item.id}><i /><span><b>{item.label}</b><small>{item.detail}</small></span><time>{formatDate(item.at)}</time></div>
-            )) : <p className="text-xs text-white/35">暂无活动记录</p>}
+            )) : <p className="text-sm text-white/60">暂无活动记录</p>}
           </div>
         </section>
       </form>

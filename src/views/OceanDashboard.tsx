@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, ChevronDown, ChevronLeft, ChevronRight, Fingerprint, EyeOff, GitBranch, Scan } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown, ChevronLeft, ChevronRight, Fingerprint, EyeOff, GitBranch, Scan, X } from "lucide-react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import type { CapsuleId } from "../image-lab/types";
 import TextType from "./ocean/TextType";
 import DecryptedText from "./ocean/DecryptedText";
+import ParticleVortexCanvas from "../components/ParticleVortexCanvas";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -25,10 +26,10 @@ interface ModuleCard {
 
 // 四个安全功能模块（去掉旧「海底舱」命名，用用户确认的正式名）。
 const MODULES: ModuleCard[] = [
-  { id: "redaction", index: "01", title: "局部隐私脱敏", label: "PRIVACY REDACTION", desc: "手动框选 · 二维码识别 · 局部 AES-GCM", color: "#A78BFA", glow: "rgba(167,139,250,0.5)", icon: Scan },
-  { id: "watermark", index: "02", title: "数字水印与版权取证", label: "WATERMARK & PROOF", desc: "嵌入水印 · SM2 签发 · 泄露溯源", color: "#FBBF24", glow: "rgba(251,191,36,0.5)", icon: Fingerprint },
-  { id: "stego", index: "03", title: "隐写攻防", label: "STEGO LAB", desc: "LSB 隐写 · PSNR 评估 · 检测评分", color: "#60A5FA", glow: "rgba(96,165,250,0.5)", icon: EyeOff },
-  { id: "orchestrator", index: "04", title: "自适应密码编排", label: "ADAPTIVE CRYPTO", desc: "规则引擎 · 按文件特征推荐策略", color: "#34D399", glow: "rgba(52,211,153,0.5)", icon: GitBranch },
+  { id: "redaction", index: "01", title: "局部隐私脱敏", label: "PRIVACY REDACTION", desc: "手动框选 · 二维码识别 · 局部 AES-GCM", color: "#A6F2F0", glow: "rgba(166,242,240,0.5)", icon: Scan },
+  { id: "watermark", index: "02", title: "数字水印与版权取证", label: "WATERMARK & PROOF", desc: "嵌入水印 · SM2 签发 · 泄露溯源", color: "#9FDBFF", glow: "rgba(159,219,255,0.5)", icon: Fingerprint },
+  { id: "stego", index: "03", title: "隐写攻防", label: "STEGO LAB", desc: "LSB 隐写 · PSNR 评估 · 检测评分", color: "#7BCBFF", glow: "rgba(123,203,255,0.5)", icon: EyeOff },
+  { id: "orchestrator", index: "04", title: "自适应密码编排", label: "ADAPTIVE CRYPTO", desc: "规则引擎 · 按文件特征推荐策略", color: "#C2FFE8", glow: "rgba(194,255,232,0.5)", icon: GitBranch },
 ];
 
 const CARD_STEP = 360 / MODULES.length;
@@ -42,17 +43,22 @@ export default function OceanDashboard({ onNavigate }: OceanDashboardProps) {
   const hubRef = useRef<HTMLElement>(null);
   const orbitRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const focusPanelRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const rotationRef = useRef(0);
   const targetRef = useRef<number | null>(null);
   const pausedRef = useRef(false);
   const draggingRef = useRef(false);
+  const dragActiveRef = useRef(false);
   const dragStartXRef = useRef(0);
   const dragStartRotRef = useRef(0);
   const dragMovedRef = useRef(0);
 
   const [reduced, setReduced] = useState(false);
+  const [selectedCard, setSelectedCard] = useState<CapsuleId | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const selectedModule = selectedCard ? MODULES.find((module) => module.id === selectedCard) ?? null : null;
 
   const openModule = (id: CapsuleId) => {
     try {
@@ -137,6 +143,29 @@ export default function OceanDashboard({ onNavigate }: OceanDashboardProps) {
     return () => gsap.ticker.remove(tick);
   }, []);
 
+  useEffect(() => {
+    const panel = focusPanelRef.current;
+    if (!panel || !selectedCard || reduced) return;
+
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        panel,
+        { autoAlpha: 0, scale: 0.5, rotationY: -18, y: 38 },
+        { autoAlpha: 1, scale: 1, rotationY: 0, y: 0, duration: 0.78, ease: "back.out(1.18)" },
+      );
+      gsap.from(".oc2-focus-stagger", {
+        y: 18,
+        opacity: 0,
+        duration: 0.52,
+        ease: "power2.out",
+        stagger: 0.075,
+        delay: 0.16,
+      });
+    }, panel);
+
+    return () => ctx.revert();
+  }, [reduced, selectedCard]);
+
   // GSAP ScrollTrigger：入场时间线 + 双幕过渡 + Hub 揭示（scroller 用内部滚动容器）。
   useEffect(() => {
     if (prefersReducedMotion()) return;
@@ -215,22 +244,35 @@ export default function OceanDashboard({ onNavigate }: OceanDashboardProps) {
   // Pointer 拖拽旋转
   const onPointerDown = (e: React.PointerEvent) => {
     if (reduced) return;
+    // 鼠标准备操作时立即冻结巡航，避免卡片在点击前从指针下滑走。
+    pausedRef.current = true;
     draggingRef.current = true;
+    dragActiveRef.current = false;
     dragStartXRef.current = e.clientX;
     dragStartRotRef.current = rotationRef.current;
     dragMovedRef.current = 0;
     targetRef.current = null;
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
   const onPointerMove = (e: React.PointerEvent) => {
     if (!draggingRef.current) return;
     const dx = e.clientX - dragStartXRef.current;
     dragMovedRef.current = Math.max(dragMovedRef.current, Math.abs(dx));
+    if (dragMovedRef.current > 6 && !dragActiveRef.current) {
+      dragActiveRef.current = true;
+      setIsDragging(true);
+      setSelectedCard(null);
+      pausedRef.current = false;
+      targetRef.current = null;
+      // 只有确认进入拖拽后才捕获指针，普通点击仍由卡片按钮接收。
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    }
     rotationRef.current = dragStartRotRef.current + dx * 0.35;
   };
   const onPointerUp = (e: React.PointerEvent) => {
     if (!draggingRef.current) return;
     draggingRef.current = false;
+    dragActiveRef.current = false;
+    setIsDragging(false);
     try {
       (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
     } catch {
@@ -238,18 +280,33 @@ export default function OceanDashboard({ onNavigate }: OceanDashboardProps) {
     }
   };
 
+  const pauseOrbit = () => {
+    pausedRef.current = true;
+  };
+
+  const resumeOrbit = () => {
+    if (!selectedCard && !draggingRef.current && targetRef.current === null) {
+      pausedRef.current = false;
+    }
+  };
+
   const handleCardClick = (i: number, id: CapsuleId) => {
     if (dragMovedRef.current > 6) return; // 拖拽结束不误触
-    const rot = rotationRef.current;
-    const world = ((i * CARD_STEP + rot) * Math.PI) / 180;
-    const facing = Math.cos(world);
-    if (facing > 0.86) openModule(id);
-    else focusCard(i);
+    focusCard(i);
+    setSelectedCard(id);
+    pausedRef.current = true;
   };
 
   const rotateBy = (dir: 1 | -1) => {
+    setSelectedCard(null);
+    pausedRef.current = false;
     const base = targetRef.current ?? rotationRef.current;
     targetRef.current = Math.round(base / CARD_STEP) * CARD_STEP + dir * CARD_STEP;
+  };
+
+  const closeFocus = () => {
+    setSelectedCard(null);
+    pausedRef.current = false;
   };
 
   return (
@@ -274,19 +331,19 @@ export default function OceanDashboard({ onNavigate }: OceanDashboardProps) {
             <ArrowLeft size={15} /> 返回创新页
           </button>
           <button className="oc2-chip liquid-glass" data-agent-id="ocean.open-lab" type="button" onClick={() => onNavigate("image-lab")}>
-            打开操作台 <ArrowRight size={15} />
+            打开图片安全实验室 <ArrowRight size={15} />
           </button>
         </header>
 
         <div className="oc2-hero-inner" data-ripple-block>
-          <p className="oc2-eyebrow oc2-hero-stagger">深海 · 图像安全</p>
+          <p className="oc2-eyebrow oc2-hero-stagger">深海 · 图片安全实验室</p>
           <h1 className="oc2-hero-title oc2-hero-stagger">
             {reduced ? (
-              "Image Security Lab"
+              "图片安全实验室"
             ) : (
               <TextType
                 as="span"
-                text={["Image Security Lab", "隐私 · 水印 · 隐写 · 编排"]}
+                text={["图片安全实验室", "隐私 · 水印 · 隐写 · 编排"]}
                 typingSpeed={70}
                 pauseDuration={2200}
                 deletingSpeed={38}
@@ -315,22 +372,32 @@ export default function OceanDashboard({ onNavigate }: OceanDashboardProps) {
           muted
           loop
           playsInline
-          poster="/assets/ocean/jellyfish-poster.jpg"
-          src="/assets/ocean/jellyfish-bg.mp4"
+          poster="/assets/ocean/dark-curtain-poster.jpg"
+          src="/assets/ocean/dark-curtain-loop.mp4"
           aria-hidden="true"
         />
         <div className="oc2-hub-scrim" aria-hidden="true" />
+        <video
+          className="oc2-hub-jelly-media"
+          autoPlay
+          muted
+          loop
+          playsInline
+          src="/assets/ocean/aurex-jellyfish-overlay.mp4"
+          aria-hidden="true"
+        />
 
         <div className="oc2-hub-grid">
           <aside className="oc2-hub-aside" data-ripple-block>
             <button className="oc2-chip liquid-glass oc2-hub-back" type="button" onClick={scrollToHero}>
               <ChevronDown size={15} style={{ transform: "rotate(180deg)" }} /> 返回上一幕
             </button>
-            <p className="oc2-eyebrow">Security Modules</p>
-            <h2 className="oc2-hub-title">选择安全功能</h2>
+            <p className="oc2-eyebrow">图片安全实验室 · SECURITY MODULES</p>
+            <h2 className="oc2-hub-title">选择实验模块</h2>
             <p className="oc2-hub-sub">
-              拖动漩涡或用箭头旋转，点击正面的卡片进入对应实验。四个模块共享同一套密码引擎。
+              拖动卡片环或使用箭头切换模块，点击任意可见卡片即可放大查看，再进入对应实验。四个模块共享同一套浏览器本地密码引擎。
             </p>
+            <p className="oc2-interaction-note"><span />拖动旋转 · 点击聚焦 · 按钮进入</p>
             <div className="oc2-hub-controls">
               <button className="oc2-arrow liquid-glass" data-agent-id="ocean.previous" type="button" onClick={() => rotateBy(-1)} aria-label="上一个模块">
                 <ChevronLeft size={18} />
@@ -341,14 +408,8 @@ export default function OceanDashboard({ onNavigate }: OceanDashboardProps) {
             </div>
           </aside>
 
-          <div className="oc2-stage-wrap" data-agent-id="ocean.cards">
-            {/* 纯 CSS/SVG 漩涡光环（无人物） */}
-            <div className="oc2-vortex" aria-hidden="true">
-              <span className="oc2-vortex-ring r1" />
-              <span className="oc2-vortex-ring r2" />
-              <span className="oc2-vortex-ring r3" />
-              <span className="oc2-vortex-core" />
-            </div>
+          <div className={`oc2-stage-wrap ${selectedCard ? "has-selected" : ""} ${isDragging ? "is-dragging" : ""}`} data-agent-id="ocean.cards">
+            <ParticleVortexCanvas variant="hub" />
 
             <div
               className="oc2-orbit"
@@ -357,6 +418,8 @@ export default function OceanDashboard({ onNavigate }: OceanDashboardProps) {
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
               onPointerCancel={onPointerUp}
+              onPointerEnter={pauseOrbit}
+              onPointerLeave={resumeOrbit}
               data-ripple-block
             >
               <div className="oc2-stage" ref={stageRef}>
@@ -366,7 +429,8 @@ export default function OceanDashboard({ onNavigate }: OceanDashboardProps) {
                     <button
                       key={m.id}
                       type="button"
-                      className={`oc2-card oc2-card-${m.id}`}
+                      className={`oc2-card oc2-card-${m.id} ${selectedCard === m.id ? "is-selected" : ""}`}
+                      aria-pressed={selectedCard === m.id}
                       style={{ "--i": i, "--c": m.color, "--g": m.glow } as React.CSSProperties}
                       ref={(el) => {
                         cardRefs.current[i] = el;
@@ -374,6 +438,9 @@ export default function OceanDashboard({ onNavigate }: OceanDashboardProps) {
                       onClick={() => handleCardClick(i, m.id)}
                     >
                       <div className="oc2-card-cover">
+                        <img className="oc2-card-preview" src={`/assets/image-lab/previews/${m.id}.png`} alt="" aria-hidden="true" />
+                        <span className="oc2-card-preview-wash" aria-hidden="true" />
+                        <span className="oc2-card-scan" aria-hidden="true" />
                         <span className="oc2-card-icon">
                           <Icon size={30} />
                         </span>
@@ -397,7 +464,7 @@ export default function OceanDashboard({ onNavigate }: OceanDashboardProps) {
                         </span>
                         <span className="oc2-card-desc">{m.desc}</span>
                         <span className="oc2-card-enter">
-                          进入实验 <ArrowRight size={14} />
+                          点击放大 <ArrowRight size={14} />
                         </span>
                       </div>
                     </button>
@@ -405,6 +472,38 @@ export default function OceanDashboard({ onNavigate }: OceanDashboardProps) {
                 })}
               </div>
             </div>
+
+            {selectedModule && (
+              <div className="oc2-focus-layer" data-agent-id="ocean.focus" onClick={closeFocus}>
+                <div
+                  className="oc2-focus-panel"
+                  ref={focusPanelRef}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="oc2-focus-title"
+                  style={{ "--c": selectedModule.color, "--g": selectedModule.glow } as React.CSSProperties}
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <button className="oc2-focus-close" type="button" onClick={closeFocus} aria-label="关闭实验预览"><X size={18} /></button>
+                  <button className="oc2-focus-media" type="button" onClick={() => openModule(selectedModule.id)} aria-label={`再次点击进入${selectedModule.title}`}>
+                    <img src={`/assets/image-lab/previews/${selectedModule.id}.png`} alt={`${selectedModule.title}实验界面`} />
+                    <span className="oc2-focus-media-glow" aria-hidden="true" />
+                    <span className="oc2-focus-index">MODULE / {selectedModule.index}</span>
+                    <span className="oc2-focus-media-hint">再次点击进入实验 <ArrowRight size={15} /></span>
+                  </button>
+                  <div className="oc2-focus-copy">
+                    <span className="oc2-focus-label oc2-focus-stagger">{selectedModule.label}</span>
+                    <h3 className="oc2-focus-stagger" id="oc2-focus-title">{selectedModule.title}</h3>
+                    <p className="oc2-focus-stagger">{selectedModule.desc}</p>
+                    <div className="oc2-focus-rule oc2-focus-stagger" aria-hidden="true"><i /><i /><i /></div>
+                    <button className="oc2-focus-enter oc2-focus-stagger" type="button" onClick={() => openModule(selectedModule.id)}>
+                      进入此实验 <ArrowRight size={17} />
+                    </button>
+                    <small className="oc2-focus-stagger">所有处理均在浏览器本地完成</small>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

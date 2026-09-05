@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { ArrowRight, Bot, Image as ImageIcon, Play, ShieldCheck, Sparkles, Volume2, VolumeX, Waves } from "lucide-react";
 import JellyfishField from "../components/JellyfishField";
 import ReefBackground from "../components/ReefBackground";
+import ImageLabPreviewDialog from "../components/ImageLabPreviewDialog";
 import "./InnovationView.css";
 
 type InnovationTarget = "home" | "ocean" | "agent";
@@ -12,6 +14,8 @@ type InnovationViewProps = {
 };
 
 export default function InnovationView({ onNavigate, musicPlaying, musicNeedsAction, onToggleMusic }: InnovationViewProps) {
+  const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
+
   return (
     <div className="reef-page">
       <ReefBackground />
@@ -38,7 +42,13 @@ export default function InnovationView({ onNavigate, musicPlaying, musicNeedsAct
               <button className="reef-action reef-action-primary" type="button" onClick={() => onNavigate("agent")}>
                 <span>进入 AI 导师</span><ArrowRight aria-hidden="true" />
               </button>
-              <button className="reef-action reef-action-secondary" type="button" onClick={() => onNavigate("ocean")}>
+              <button
+                className="reef-action reef-action-secondary"
+                type="button"
+                onClick={() => setImagePreviewOpen(true)}
+                aria-haspopup="dialog"
+                aria-expanded={imagePreviewOpen}
+              >
                 <span>进入图片实验</span><ArrowRight aria-hidden="true" />
               </button>
             </div>
@@ -55,6 +65,14 @@ export default function InnovationView({ onNavigate, musicPlaying, musicNeedsAct
           <p className="reef-jelly-hint">移动鼠标靠近水母，观察它们的逃离反应</p>
         </footer>
       </div>
+      <ImageLabPreviewDialog
+        open={imagePreviewOpen}
+        onClose={() => setImagePreviewOpen(false)}
+        onEnter={() => {
+          setImagePreviewOpen(false);
+          onNavigate("ocean");
+        }}
+      />
     </div>
   );
 }

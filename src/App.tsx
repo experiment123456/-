@@ -16,6 +16,11 @@ import AgentExperience, { type AgentNavigateTarget } from "./components/AgentExp
 type LabView = "workbench" | "dh" | "network" | "catalog" | "innovation";
 type ModuleView = "image-lab" | "ocean";
 type AppView = "home" | LabView | ModuleView | "agent" | "login" | "account";
+type WelcomePhase = "visible" | "leaving" | "hidden";
+
+const WELCOME_STORAGE_KEY = "lumora-welcome-seen";
+const WELCOME_DURATION = 3_000;
+const WELCOME_TRANSITION = 500;
 
 const videos = [
   { label: "Golden Hour", src: "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260702_081127_0992a171-d3c6-4978-8213-0ec5df8b6d63.mp4" },
@@ -39,8 +44,18 @@ function viewFromHash(): AppView {
   return ["workbench", "dh", "network", "catalog", "innovation", "image-lab", "ocean", "agent", "login", "account"].includes(value) ? value : "login";
 }
 
+function initialWelcomePhase(): WelcomePhase {
+  if (viewFromHash() !== "login") return "hidden";
+  try {
+    return sessionStorage.getItem(WELCOME_STORAGE_KEY) ? "hidden" : "visible";
+  } catch {
+    return "visible";
+  }
+}
+
 function App() {
   const [view, setView] = useState<AppView>(() => viewFromHash());
+  const [welcomePhase, setWelcomePhase] = useState<WelcomePhase>(initialWelcomePhase);
   const [activeVideo, setActiveVideo] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -55,6 +70,8 @@ function App() {
   const [homeMusicNeedsAction, setHomeMusicNeedsAction] = useState(false);
   const [homeMusicError, setHomeMusicError] = useState(false);
   const timerRef = useRef<number | null>(null);
+  const welcomeTimerRef = useRef<number | null>(null);
+  const welcomeExitRef = useRef<number | null>(null);
   const videoRefs = useRef<Array<HTMLVideoElement | null>>([]);
   const loginVideoRef = useRef<HTMLVideoElement | null>(null);
   const homeMusicRef = useRef<HTMLAudioElement | null>(null);
@@ -74,6 +91,40 @@ function App() {
   const isModuleView = isImageLab || isOcean;
   const isAgentView = view === "agent";
   const isInnovationSurface = isInnovationView || isAgentView;
+
+  const enterLogin = useCallback(() => {
+    if (welcomePhase !== "visible") return;
+    if (welcomeTimerRef.current !== null) {
+      window.clearTimeout(welcomeTimerRef.current);
+      welcomeTimerRef.current = null;
+    }
+    setWelcomePhase("leaving");
+    welcomeExitRef.current = window.setTimeout(() => {
+      setWelcomePhase("hidden");
+      welcomeExitRef.current = null;
+    }, WELCOME_TRANSITION);
+  }, [welcomePhase]);
+
+  useEffect(() => {
+    if (welcomePhase !== "visible") return;
+    try {
+      sessionStorage.setItem(WELCOME_STORAGE_KEY, "1");
+    } catch {
+      /* 无存储权限时仍保持本次访问可正常进入 */
+    }
+    welcomeTimerRef.current = window.setTimeout(enterLogin, WELCOME_DURATION);
+    return () => {
+      if (welcomeTimerRef.current !== null) {
+        window.clearTimeout(welcomeTimerRef.current);
+        welcomeTimerRef.current = null;
+      }
+    };
+  }, [enterLogin, welcomePhase]);
+
+  useEffect(() => () => {
+    if (welcomeTimerRef.current !== null) window.clearTimeout(welcomeTimerRef.current);
+    if (welcomeExitRef.current !== null) window.clearTimeout(welcomeExitRef.current);
+  }, []);
 
   const playLoginVideo = useCallback((video: HTMLVideoElement, withSound: boolean) => {
     const request = ++loginRequestRef.current;
@@ -273,7 +324,10 @@ function App() {
   };
 
   return (
-    <section id="app-scene" className={`relative h-[100svh] w-full overflow-hidden bg-black text-white ${settings.reducedMotion ? "motion-reduced" : ""}`}>
+    <section
+      id="app-scene"
+      className={`app-scene relative h-[100svh] w-full overflow-hidden bg-black text-white ${settings.reducedMotion ? "motion-reduced" : ""} ${welcomePhase === "visible" ? "welcome-is-visible" : welcomePhase === "leaving" ? "welcome-is-leaving" : ""}`}
+    >
       {isInnovationSurface ? (
         <div className={`absolute inset-0 z-0 ${isAgentView ? "bg-[#060808]" : "bg-[#06404b]"}`} aria-hidden="true" />
       ) : isModuleView ? (
@@ -383,7 +437,7 @@ function App() {
           {isOcean && <OceanDashboard onNavigate={navigate} />}
         </div>
       ) : isAgentView ? null : (
-      <div className="relative z-[3] flex h-full flex-col px-4 py-4 sm:px-7 sm:py-6 lg:px-10 lg:py-7 xl:px-14">
+      <div className="app-view-content relative z-[3] flex h-full flex-col px-4 py-4 sm:px-7 sm:py-6 lg:px-10 lg:py-7 xl:px-14">
         <nav className="flex shrink-0 items-center justify-between gap-3 text-white" aria-label="主导航" data-ripple-block>
           <button type="button" className="group flex items-center gap-3 text-left" onClick={() => navigate("home")} aria-label="返回首页">
             {view !== "home" && <span className="liquid-glass grid h-9 w-9 place-items-center rounded-full transition group-hover:-translate-x-0.5"><ArrowLeft className="h-4 w-4" /></span>}
@@ -515,6 +569,33 @@ function App() {
         onError={() => { setHomeMusicPlaying(false); setHomeMusicError(true); setHomeMusicNeedsAction(true); }}
         aria-label="Komorebi 舒缓背景音乐"
       />
+
+      {welcomePhase !== "hidden" && (
+        <div
+          className={`welcome-screen ${welcomePhase === "leaving" ? "is-leaving" : ""}`}
+          role="dialog"
+          aria-modal="true"
+          aria-label="欢迎来到 Lumora"
+        >
+          <main className="welcome-content">
+            <div className="welcome-logo" aria-label="Lumora">
+              <span className="welcome-logo-mark" aria-hidden="true"><i>L</i></span>
+              <span className="welcome-wordmark">Lumora</span>
+            </div>
+            <p className="welcome-eyebrow">CIPHER LABORATORY</p>
+            <h1>欢迎进入密码实验室</h1>
+            <p className="welcome-subtitle">在这里体验密码算法、密钥交换与双机安全通信。</p>
+            <button className="welcome-enter" type="button" onClick={enterLogin} autoFocus>
+              <span>立即进入</span><ArrowRight aria-hidden="true" />
+            </button>
+          </main>
+          <div className="welcome-progress" aria-hidden="true">
+            <span>正在准备实验环境</span>
+            <div><i /></div>
+          </div>
+          <button className="welcome-skip" type="button" onClick={enterLogin}>跳过</button>
+        </div>
+      )}
     </section>
   );
 }

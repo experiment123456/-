@@ -24,6 +24,10 @@ const password = "DeepOcean_2026";
 
 try {
   await page.goto(base, { waitUntil: "networkidle" });
+  results.welcomeVisible = await page.getByRole("dialog", { name: "欢迎来到 Lumora" }).isVisible();
+  await page.getByRole("button", { name: "立即进入" }).click();
+  await page.getByRole("dialog", { name: "欢迎来到 Lumora" }).waitFor({ state: "detached" });
+  results.welcomeManualEntry = true;
   results.entryStartsAtLogin = await page.getByRole("button", { name: "进入实验平台" }).isVisible();
   await page.screenshot({ path: `${screenshotDir}/login-desktop.png`, animations: "disabled" });
   const loginVideo = page.locator(".auth-whale-video");
@@ -122,6 +126,11 @@ try {
   const mobile = await context.newPage();
   await mobile.setViewportSize({ width: 390, height: 844 });
   await mobile.goto(`${base}#login`, { waitUntil: "networkidle" });
+  const mobileWelcome = mobile.getByRole("dialog", { name: "欢迎来到 Lumora" });
+  if (await mobileWelcome.isVisible()) {
+    await mobile.getByRole("button", { name: "立即进入" }).click();
+    await mobileWelcome.waitFor({ state: "detached" });
+  }
   results.mobileOverflow = await mobile.evaluate(() => document.documentElement.scrollWidth <= innerWidth && document.documentElement.scrollHeight <= innerHeight);
   await mobile.screenshot({ path: `${screenshotDir}/login-mobile.png`, animations: "disabled" });
   await mobile.close();

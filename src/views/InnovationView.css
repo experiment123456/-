@@ -34,14 +34,39 @@
 .reef-hero h1 { margin: 0; font-family: "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif; font-weight: 600; font-size: clamp(36px, 5.1vw, 78px); line-height: 1.45; letter-spacing: .035em; text-shadow: 0 3px 28px #00172e66; }
 .reef-hero h1 span { display: block; }
 .reef-intro { margin: 24px auto 0; max-width: 550px; font-size: 14px; line-height: 2; letter-spacing: .06em; color: #d3e8f2; text-shadow: 0 1px 10px #00213b; }
-.reef-actions { display: flex; justify-content: center; gap: 17px; margin-top: 33px; }
-.reef-action { display: flex; align-items: center; justify-content: center; gap: 30px; min-width: 195px; min-height: 53px; padding: 15px 24px; border: 1px solid #b2e5f1ad; border-radius: 5px; font-size: 13px; letter-spacing: .05em; color: #f0fbff; transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease; }
-.reef-action svg { width: 18px; height: 18px; stroke-width: 1.5; }
+.reef-actions { position: relative; display: flex; justify-content: center; gap: 17px; margin-top: 33px; }
+.reef-action-group { min-width: 0; }
+.reef-action { display: flex; align-items: center; justify-content: center; gap: 30px; min-width: 195px; min-height: 53px; padding: 15px 24px; border: 1px solid #b2e5f1ad; border-radius: 5px; font-size: 13px; letter-spacing: .05em; color: #f0fbff; transition: transform 180ms ease, background 180ms ease, border-color 180ms ease, box-shadow 180ms ease; }
+.reef-action svg { width: 18px; height: 18px; stroke-width: 1.5; transition: transform 180ms ease; }
 .reef-action-primary { border-color: #4ccfff90; background: linear-gradient(115deg, #17b8e7, #087fc9); box-shadow: 0 7px 32px #0583c638; }
 .reef-action-secondary { background: #063c5a4d; }
-.reef-action:hover { transform: translateY(-2px); box-shadow: 0 9px 30px #169ad94d; }
-.reef-action-secondary:hover { background: #0e597980; }
-.reef-entry-note { margin: 26px 0 0; color: #a7cbdc; font-size: 10px; letter-spacing: .14em; }
+.reef-action-preview { position: absolute; z-index: 5; top: calc(100% + 14px); left: 50%; display: flex; align-items: center; gap: 12px; width: min(100%, 420px); box-sizing: border-box; padding: 15px 17px; border: 1px solid #71ddff55; border-radius: 10px; background: linear-gradient(120deg, #08374ef5, #041b32f5); box-shadow: 0 12px 32px #00101f55, inset 0 1px #ffffff0a; backdrop-filter: blur(16px); text-align: left; letter-spacing: .025em; pointer-events: none; opacity: 0; visibility: hidden; transform: translate(-50%, 6px); transition: opacity 180ms ease, transform 180ms ease, visibility 180ms ease; }
+.reef-action-preview > svg { flex-shrink: 0; width: 25px; height: 25px; color: #75e4ff; stroke-width: 1.4; }
+.reef-action-preview strong { display: block; font-size: 12px; font-weight: 500; color: #e6faff; }
+.reef-action-preview p { margin: 5px 0 0; font-size: 10px; line-height: 1.7; color: #b4d3e2; }
+.reef-preview-tag { flex-shrink: 0; margin-left: auto; padding: 4px 7px; border: 1px solid #72dfff30; border-radius: 4px; color: #8ce7f6; font-size: 9px; }
+.reef-action-preview-image { border-color: #b7acff55; }
+.reef-action-preview-image > svg { color: #c1b7ff; }
+.reef-action-preview-image .reef-preview-tag { color: #d0c8ff; border-color: #b7acff30; }
+.reef-action:focus-visible { transform: translateY(-3px); border-color: #a2efff; box-shadow: 0 10px 32px #1abfea66; }
+.reef-action-primary:focus-visible { background: linear-gradient(115deg, #32d4f0, #149cde); }
+.reef-action-secondary:focus-visible { background: #126b99c9; }
+.reef-action:focus-visible svg { transform: translateX(4px); }
+.reef-action:focus-visible + .reef-action-preview { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
+.reef-actions:has(.reef-action:focus-visible) + .reef-entry-note { opacity: 0; }
+@media (hover: hover) and (pointer: fine) {
+  .reef-action:hover { transform: translateY(-3px); border-color: #a2efff; box-shadow: 0 10px 32px #1abfea66; }
+  .reef-action-primary:hover { background: linear-gradient(115deg, #32d4f0, #149cde); }
+  .reef-action-secondary:hover { background: #126b99c9; }
+  .reef-action:hover svg { transform: translateX(4px); }
+  .reef-action:hover + .reef-action-preview { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
+  .reef-actions:has(.reef-action:hover) .reef-action:not(:hover) + .reef-action-preview { opacity: 0; visibility: hidden; }
+  .reef-actions:has(.reef-action:hover) + .reef-entry-note { opacity: 0; }
+}
+.reef-action-primary:active, .reef-action-primary.is-entering { background: linear-gradient(115deg, #159c92, #087a85); border-color: #8af4dc; box-shadow: 0 0 28px #32e5bc55; transform: translateY(1px) scale(.98); }
+.reef-action-secondary:active, .reef-action-secondary.is-entering { background: linear-gradient(115deg, #7960ce, #5745ad); border-color: #d2beff; box-shadow: 0 0 28px #a384ff55; transform: translateY(1px) scale(.98); }
+.reef-actions.is-entering .reef-action-preview { opacity: 0; visibility: hidden; }
+.reef-entry-note { margin: 26px 0 0; color: #a7cbdc; font-size: 10px; letter-spacing: .14em; transition: opacity 150ms ease; }
 .reef-footer { flex-shrink: 0; padding: 0 clamp(24px, 5.6vw, 100px) 23px; }
 .reef-features { display: flex; justify-content: space-evenly; gap: 18px; padding: 24px 0; border-top: 1px solid #a7d7e923; }
 .reef-features > div { display: flex; align-items: center; gap: 12px; color: #c2d7e4; font-size: 11px; letter-spacing: .07em; }
@@ -60,6 +85,8 @@
   .reef-intro { font-size: 12px; letter-spacing: .015em; margin-top: 22px; }
   .reef-actions { gap: 11px; margin-top: 27px; }
   .reef-action { min-width: 0; padding: 13px 16px; min-height: 47px; gap: 14px; font-size: 11px; }
+  .reef-action-preview { gap: 10px; padding: 12px; }
+  .reef-preview-tag { display: none; }
   .reef-entry-note { font-size: 9px; line-height: 1.8; letter-spacing: .05em; margin-top: 21px; }
   .reef-footer { padding: 0 24px 21px; }
   .reef-features { gap: 18px 12px; flex-wrap: wrap; justify-content: center; padding: 19px 0; }
@@ -82,4 +109,9 @@
   .reef-page { overflow-y: auto; }
   .reef-content { min-height: 630px; }
   .reef-background { position: fixed; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reef-action, .reef-action svg, .reef-action-preview, .reef-entry-note { transition: none; }
+  .reef-actions .reef-action, .reef-action svg { transform: none; }
+  .reef-action-preview { transform: translate(-50%, 0); }
 }

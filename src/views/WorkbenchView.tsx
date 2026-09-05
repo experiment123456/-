@@ -107,7 +107,24 @@ export default function WorkbenchView() {
   };
 
   return (
-    <div className="app-panel panel-reveal grid h-full min-h-0 grid-cols-1 overflow-hidden rounded-[30px] lg:grid-cols-[230px_minmax(0,1fr)]">
+    <div className="workbench-readable app-panel panel-reveal grid h-full min-h-0 grid-cols-1 overflow-hidden rounded-[30px] lg:grid-cols-[230px_minmax(0,1fr)]">
+      <style>{`
+        .workbench-readable .eyebrow,.workbench-readable .field-caption{font-size:.78rem;letter-spacing:.13em;font-weight:700;color:rgba(215,246,235,.8)}
+        .workbench-readable .field-label{font-size:.8rem;color:rgba(227,249,241,.85);font-weight:650;letter-spacing:.03em}
+        .workbench-readable .field-label>span{margin-bottom:8px}
+        .workbench-readable .field-control{font-size:1rem;color:rgba(245,255,250,.95)}
+        .workbench-readable button{font-size:.96rem}
+        .workbench-readable .segmented button{font-weight:600;color:rgba(236,252,246,.85)}
+        .workbench-readable .text-sm{font-size:1rem;line-height:1.75rem}
+        .workbench-readable .text-xs{font-size:.85rem;font-weight:600;letter-spacing:.04em;line-height:1.6}
+        .workbench-readable .text-\\[10px\\]{font-size:.8rem}
+        .workbench-readable .text-\\[11px\\]{font-size:.85rem}
+        .workbench-readable .opacity-40{opacity:.7}
+        .workbench-readable .opacity-50{opacity:.75}
+        .workbench-readable .algorithm-tab .text-sm{font-weight:650}
+        .workbench-readable textarea.font-mono{font-size:1.05rem;line-height:1.9rem;font-weight:600}
+        .workbench-readable input.font-mono{font-size:.95rem;font-weight:600;letter-spacing:.02em}
+      `}</style>
       <aside className="panel-sidebar hidden min-h-0 border-r border-white/10 p-4 lg:flex lg:flex-col" data-agent-id="workbench.algorithms">
         <div className="px-2 pb-4 pt-1">
           <p className="eyebrow">LOCAL LAB / 01</p>
@@ -133,12 +150,12 @@ export default function WorkbenchView() {
       <section className="soft-scroll min-h-0 overflow-y-auto p-4 sm:p-6 lg:p-7">
         <header className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <div className="flex items-center gap-2 text-xs text-white/50">
+            <div className="flex items-center gap-2 text-xs text-white/80">
               <span className="rounded-full border border-white/15 px-2.5 py-1">{selected.family}</span>
               <span>真实算法实现</span>
             </div>
             <h1 className="mt-3 text-3xl leading-none sm:text-4xl">{selected.name}</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/55">{selected.summary}</p>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/80">{selected.summary}</p>
           </div>
           <select
             className="field-control block w-full lg:hidden"
@@ -161,7 +178,7 @@ export default function WorkbenchView() {
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
             <label className="workspace-card flex min-h-[235px] flex-col rounded-3xl p-4">
-              <span className="mb-3 flex items-center justify-between text-xs text-white/45">
+              <span className="mb-3 flex items-center justify-between text-xs text-white/80">
                 <span>INPUT / 输入</span><span>{Array.from(input).length} chars</span>
               </span>
               <textarea
@@ -174,7 +191,7 @@ export default function WorkbenchView() {
               />
             </label>
             <div className="workspace-card flex min-h-[235px] flex-col rounded-3xl p-4">
-              <span className="mb-3 flex items-center justify-between text-xs text-white/45">
+              <span className="mb-3 flex items-center justify-between text-xs text-white/80">
                 <span>OUTPUT / 结果</span>
                 <span className="flex gap-1">
                   <button className="icon-button" type="button" onClick={copyOutput} title="复制"><Clipboard /></button>
@@ -183,7 +200,7 @@ export default function WorkbenchView() {
               </span>
               <textarea
                 data-agent-id="workbench.output"
-                className="soft-scroll min-h-[170px] flex-1 resize-none bg-transparent font-mono text-sm leading-7 text-emerald-50/90 outline-none placeholder:text-white/20"
+                className="soft-scroll min-h-[170px] flex-1 resize-none bg-transparent font-mono text-sm leading-7 text-emerald-100 outline-none placeholder:text-white/20"
                 value={output}
                 onChange={(event) => setOutput(event.target.value)}
                 placeholder="处理结果会显示在这里…"
@@ -194,15 +211,15 @@ export default function WorkbenchView() {
 
           <div className="space-y-4">
             <div className="workspace-card rounded-3xl p-4" data-agent-id="workbench.key">
-              {isClassicalAlgorithm(algorithm) && <p className="mb-4 text-xs leading-5 text-white/55">支持中文、Emoji 与混合文本；自动使用 UTF-8 编码后再执行所选算法。解密时请保留 LUMORA-UTF8-V1 前缀。古典密码与扩展仅供教学，不等同于现代安全加密。</p>}
+              {isClassicalAlgorithm(algorithm) && <p className="mb-4 text-xs leading-5 text-white/80">支持中文、Emoji 与混合文本；自动使用 UTF-8 编码后再执行所选算法。解密时请保留 LUMORA-UTF8-V1 前缀。古典密码与扩展仅供教学，不等同于现代安全加密。</p>}
               <div className="mb-3 flex items-center justify-between">
-                <span className="text-xs text-white/45">KEY MATERIAL / 密钥</span>
+                <span className="text-xs text-white/80">KEY MATERIAL / 密钥</span>
                 {algorithm !== "md5" && (
                   <button className="mini-action" data-agent-id="workbench.generate-key" type="button" onClick={refreshKey}><Sparkles />生成</button>
                 )}
               </div>
               {algorithm === "md5" ? (
-                <div className="rounded-2xl border border-white/8 bg-black/10 p-4 text-sm leading-6 text-white/50">
+                <div className="rounded-2xl border border-white/8 bg-black/10 p-4 text-sm leading-6 text-white/80">
                   MD5 不使用密钥，只输出 128 位摘要。
                 </div>
               ) : (

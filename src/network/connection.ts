@@ -27,3 +27,37 @@ export function normalizeRelayUrl(value: string, pageUrl: string): string {
 export function defaultRelayUrl(pageUrl: string): string {
   return normalizeRelayUrl(new URL("/ws", pageUrl).href, pageUrl);
 }
+
+export interface RelayAddress {
+  host: string;
+  port: string;
+  protocol: "ws" | "wss";
+  path: string;
+}
+
+export function splitRelayAddress(value: string, pageUrl: string): RelayAddress {
+  const url = new URL(normalizeRelayUrl(value, pageUrl));
+  return {
+    host: url.hostname,
+    port: url.port || (url.protocol === "wss:" ? "443" : "80"),
+    protocol: url.protocol === "wss:" ? "wss" : "ws",
+    path: url.pathname + url.search,
+  };
+}
+
+export function buildRelayAddress(address: RelayAddress, pageUrl: string): string {
+  const host = address.host.trim();
+  const port = address.port.trim();
+  if (!host) throw new Error("请输入中继主机的 IP 或域名；推荐填写加密端电脑的局域网 IP");
+  if (!/^(?:[^\s/:?#@\[\]\\]+|\[[0-9a-fA-F:.]+\])$/.test(host)) {
+    throw new Error("IP / 域名栏只填写主机地址，例如 192.168.1.10；端口请填在右侧，IPv6 地址需加方括号");
+  }
+  if (!/^\d{1,5}$/.test(port) || Number(port) < 1 || Number(port) > 65535) {
+    throw new Error("端口需为 1–65535 的整数，请填写中继主机实际运行的端口");
+  }
+  const path = address.path.trim() || "/ws";
+  if (!path.startsWith("/") || path.startsWith("//") || path.includes("#")) {
+    throw new Error("中继路径应以 / 开头，通常填写 /ws，且不能包含 #");
+  }
+  return normalizeRelayUrl(`${address.protocol}://${host}:${Number(port)}${path}`, pageUrl);
+}

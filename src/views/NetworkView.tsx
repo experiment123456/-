@@ -30,13 +30,15 @@ import {
   type DhParty,
   type Sm2KeyPair,
 } from "../crypto/engine";
-import { defaultRelayUrl, normalizeRelayUrl, normalizeRoom, RELAY_PROTOCOL_VERSION } from "../network/connection";
+import { buildRelayAddress, defaultRelayUrl, splitRelayAddress, normalizeRoom, RELAY_PROTOCOL_VERSION } from "../network/connection";
+import "./NetworkView.css";
 
 type Role = "encryptor" | "decryptor";
 type Status = "offline" | "connecting" | "waiting" | "secure" | "error";
 
 interface ChatItem {
   id: string;
+  sequence: number;
   direction: "out" | "in" | "system";
   text: string;
   algorithm?: string;
@@ -47,10 +49,12 @@ interface ChatItem {
 
 interface ReceivedFile {
   id: string;
+  sequence: number;
   name: string;
   size: number;
   url: string;
   verified: boolean;
+  direction: "out" | "in";
 }
 
 interface WireMessage {
@@ -91,9 +95,9 @@ function CipherBlock({ cipher, outbound, onCopy }: { cipher: string; outbound: b
 export default function NetworkView() {
   const [role, setRole] = useState<Role>("encryptor");
   const [room, setRoom] = useState(() => "LUM-" + Math.random().toString(36).slice(2, 7).toUpperCase());
-  const [relayUrl, setRelayUrl] = useState(() => {
-    try { return localStorage.getItem("lumora-relay-url") || defaultRelayUrl(location.href); }
-    catch { return defaultRelayUrl(location.href); }
+  const [relayAddress, setRelayAddress] = useState(() => {
+    try { return splitRelayAddress(localStorage.getItem("lumora-relay-url") || defaultRelayUrl(location.href), location.href); }
+    catch { return splitRelayAddress(defaultRelayUrl(location.href), location.href); }
   });
   const [lanUrls, setLanUrls] = useState<string[]>([]);
   const [serverId, setServerId] = useState("");
@@ -111,20 +115,26 @@ export default function NetworkView() {
   const [files, setFiles] = useState<ReceivedFile[]>([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [shareFeedback, setShareFeedback] = useState<{ action: "used" | "copied"; url: string } | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const secretRef = useRef("");
   const negotiatedRef = useRef<AlgorithmId | null>(null);
   const proposalRef = useRef<AlgorithmId | null>(null);
   const peerPresentRef = useRef(false);
   const connectTimerRef = useRef<number | undefined>(undefined);
+  const shareFeedbackTimerRef = useRef<number | undefined>(undefined);
   const fileUrlsRef = useRef(new Set<string>());
   const fileRef = useRef<HTMLInputElement>(null);
   const selectedAlgorithmRef = useRef(selectedAlgorithm);
   selectedAlgorithmRef.current = selectedAlgorithm;
   const logRef = useRef<HTMLDivElement>(null);
+  const sequenceRef = useRef(0);
 
-  const append = (item: Omit<ChatItem, "id" | "time">) => {
-    setMessages((current) => [...current, { ...item, id: crypto.randomUUID(), time: timeNow() }]);
+  const nextSequence = () => ++sequenceRef.current;
+
+  const append = (item: Omit<ChatItem, "id" | "time" | "sequence">) => {
+    const entry: ChatItem = { ...item, id: crypto.randomUUID(), time: timeNow(), sequence: nextSequence() };
+    setMessages((current) => [...current, entry]);
   };
 
   useEffect(() => {
@@ -141,6 +151,7 @@ export default function NetworkView() {
 
   useEffect(() => () => {
     window.clearTimeout(connectTimerRef.current);
+    window.clearTimeout(shareFeedbackTimerRef.current);
     const socket = socketRef.current;
     socketRef.current = null;
     socket?.close();
@@ -181,10 +192,10 @@ export default function NetworkView() {
   const connect = () => {
     try {
       requireWebCrypto();
-      const endpoint = normalizeRelayUrl(relayUrl, location.href);
+      const endpoint = buildRelayAddress(relayAddress, location.href);
       const roomCode = normalizeRoom(room);
       disconnect();
-      setRelayUrl(endpoint);
+      setRelayAddress(splitRelayAddress(endpoint, location.href));
       setRoom(roomCode);
       setError("");
       setMessages([]);
@@ -310,9 +321,8 @@ export default function NetworkView() {
               const blob = new Blob([bytes.slice().buffer as ArrayBuffer], { type: String(data.mime || "application/octet-stream") });
               const url = URL.createObjectURL(blob);
               fileUrlsRef.current.add(url);
-              const received: ReceivedFile = { id: crypto.randomUUID(), name: String(data.name || "received-file"), size: bytes.length, url, verified: md5(bytes) === data.digest };
+              const received: ReceivedFile = { id: crypto.randomUUID(), sequence: nextSequence(), name: String(data.name || "received-file"), size: bytes.length, url, verified: md5(bytes) === data.digest, direction: "in" };
               setFiles((items) => [...items, received]);
-              append({ direction: "system", text: "已接收并解密文件 " + received.name });
             }
           }
         }).catch((reason) => { if (current()) setError(reason instanceof Error ? reason.message : "接收数据处理失败"); });
@@ -394,20 +404,39 @@ export default function NetworkView() {
       const payload = await aesEncryptBytes(bytes, sessionKey);
       if (socketRef.current !== socket || secretRef.current !== sessionKey) throw new Error("连接已改变，请重新发送文件");
       sendWire({ type: "file", name: file.name, mime: file.type, size: file.size, payload, digest: md5(bytes), clientTag: crypto.randomUUID() });
-      append({ direction: "system", text: "已通过 AES-GCM 文件通道发送 " + file.name + " (" + formatBytes(file.size) + ")" });
+      const url = URL.createObjectURL(file);
+      fileUrlsRef.current.add(url);
+      const sent: ReceivedFile = { id: crypto.randomUUID(), sequence: nextSequence(), name: file.name, size: file.size, url, verified: true, direction: "out" };
+      setFiles((items) => [...items, sent]);
     } catch (reason) { setError(reason instanceof Error ? reason.message : "文件发送失败"); }
     finally { setSending(false); if (fileRef.current) fileRef.current.value = ""; }
   };
 
   const copyText = async (text: string) => {
-    try { await navigator.clipboard.writeText(text); }
-    catch { setError("复制失败，请手动复制"); }
+    try { await navigator.clipboard.writeText(text); return true; }
+    catch { setError("复制失败，请手动复制"); return false; }
+  };
+  const showShareFeedback = (action: "used" | "copied", url: string) => {
+    window.clearTimeout(shareFeedbackTimerRef.current);
+    setShareFeedback({ action, url });
+    shareFeedbackTimerRef.current = window.setTimeout(() => setShareFeedback(null), 2200);
   };
   const editable = status === "offline" || status === "error";
   const isSecure = status === "secure" && Boolean(sharedSecret);
   const canSend = role === "encryptor" && isSecure && Boolean(negotiatedAlgorithm) && peerPresent && (negotiatedAlgorithm !== "sm2" || Boolean(peerSm2));
+  const channelReady = isSecure && peerPresent && Boolean(negotiatedAlgorithm) && (negotiatedAlgorithm !== "sm2" || Boolean(peerSm2));
+  const completedSteps = channelReady ? 4 : isSecure ? 3 : peerPresent ? 2 : status === "waiting" ? 1 : 0;
+  const connectionSteps = ["连接中继", "对端加入", "密钥交换", "算法确认"];
+  const connectionLabel = status === "error" ? "连接异常" : channelReady ? "通信已就绪" : isSecure ? "密钥已就绪" : status === "waiting" ? "等待连接完成" : status === "connecting" ? "正在连接" : "尚未连接";
+  let relayPreview = "";
+  try { relayPreview = buildRelayAddress(relayAddress, location.href); } catch { /* Show validation on connect; allow incomplete input while typing. */ }
+  const isLoopback = ["localhost", "127.0.0.1", "[::1]"].includes(relayAddress.host.trim().toLowerCase());
+  const timeline = [
+    ...messages.map((item) => ({ kind: "message" as const, sequence: item.sequence, item })),
+    ...files.map((item) => ({ kind: "file" as const, sequence: item.sequence, item })),
+  ].sort((a, b) => a.sequence - b.sequence);
   return (
-    <div className="app-panel panel-reveal grid h-full min-h-0 overflow-hidden rounded-[30px] lg:grid-cols-[315px_minmax(0,1fr)]">
+    <div className="network-view app-panel panel-reveal grid h-full min-h-0 overflow-hidden rounded-[30px] lg:grid-cols-[315px_minmax(0,1fr)]">
       <aside className="panel-sidebar soft-scroll min-h-0 overflow-y-auto border-b border-white/10 p-5 lg:border-b-0 lg:border-r lg:p-6">
         <p className="eyebrow">SECURE LINK / 03</p>
         <h1 className="mt-2 text-3xl">双机安全通信</h1>
@@ -425,17 +454,61 @@ export default function NetworkView() {
           </div>
         </div>
 
-        <label className="field-label mt-5">
-          <span>RELAY / 中继服务器地址</span>
-          <input aria-label="中继服务器地址" data-agent-id="network.relay" className="field-control font-mono text-xs" value={relayUrl} onChange={(event) => setRelayUrl(event.target.value)} disabled={!editable} placeholder="ws://主机局域网IP:5173/ws" />
-        </label>
-        <p className="mt-2 text-xs leading-5 text-white/50">两台电脑各自打开 localhost 网页，但这里必须填写同一台主机的中继地址。只填相同房间码不够。</p>
-        <details className="mt-2 text-xs leading-5 text-white/50">
-          <summary className="cursor-pointer text-emerald-100/80">本机作为中继：查看可分享地址</summary>
-          <p className="mt-2">同一局域网内，双方选下面同一个地址；保持这台主机运行，并允许 Node.js 通过专用网络防火墙。</p>
-          {lanUrls.map((url) => <button key={url} type="button" className="mt-2 block max-w-full break-all text-left font-mono text-emerald-100/80" onClick={() => void copyText(url)} title="复制中继地址">{url}</button>)}
-          {!lanUrls.length && <p className="mt-2">暂未发现局域网地址，请检查网络连接及服务是否已更新。</p>}
-          <p className="mt-2">不同网络需使用双方可访问的公共 WSS 中继。localhost、127.0.0.1 只代表各自电脑，不能分享给对方。</p>
+        <div className={`network-role-guide is-${role}`} aria-live="polite">
+          <strong>{role === "encryptor" ? "发送方 · 配置并分享连接信息" : "接收方 · 填写发送方提供的信息"}</strong>
+          <p>{role === "encryptor" ? "推荐由这台加密端电脑运行中继。选好本机 IP 后，把 IP、端口和房间码发给解密端；连接后发起算法协商并发送消息。" : "推荐连接加密端电脑上的中继。向对方索取 IP、端口和房间码；连接后接受算法，消息会自动解密并显示在右侧。"}</p>
+        </div>
+
+        <div className="network-address-fields mt-5" data-agent-id="network.relay">
+          <label className="field-label">
+            <span>中继主机 IP / 域名</span>
+            <input aria-label="中继主机 IP 或域名" aria-describedby="network-address-help" className="field-control font-mono" value={relayAddress.host} onChange={(event) => setRelayAddress((current) => ({ ...current, host: event.target.value }))} disabled={!editable} placeholder="例如 192.168.1.10" autoCapitalize="none" spellCheck={false} />
+          </label>
+          <label className="field-label">
+            <span>端口号</span>
+            <input aria-label="中继端口号" aria-describedby="network-port-help" className="field-control font-mono" value={relayAddress.port} onChange={(event) => setRelayAddress((current) => ({ ...current, port: event.target.value }))} disabled={!editable} inputMode="numeric" maxLength={5} placeholder="5173" />
+          </label>
+        </div>
+        <p id="network-address-help" className="network-relay-hint mt-2 text-xs leading-5 text-white/50">
+          {role === "encryptor" ? <>本机运行中继时，填<strong>这台加密端电脑的局域网 IP</strong>，可从下方选择。让解密端填写相同的 IP。</> : <>填<strong>加密端电脑的局域网 IP</strong>，不是这台解密端电脑的 IP。请让加密端从“查看并分享本机 IP”中提供地址。</>}
+        </p>
+        <p id="network-port-help" className="network-port-hint">端口填中继主机实际运行的端口（开发环境通常为 5173），两端一致。这里修改端口只改变连接目标，不会启动新服务。</p>
+        {isLoopback && <p className="network-loopback-note">当前地址仅指向本机：单台电脑开两个窗口测试可以使用；两台电脑测试请改为中继主机的局域网 IP。</p>}
+
+        {role === "encryptor" ? (
+          <details className="network-relay-help mt-2 text-xs leading-5 text-white/50">
+            <summary className="cursor-pointer">查看并分享本机 IP（推荐加密端运行中继）</summary>
+            <p className="mt-2">本地运行项目时，下列为这台主机的可用地址。选择与解密端处于同一局域网的 IP，保持项目运行，并允许 Node.js 通过专用网络防火墙。</p>
+            {lanUrls.map((url) => {
+              const address = splitRelayAddress(url, "http://localhost");
+              return <div className="network-share-address" key={url}>
+                <code>IP：{address.host}<br />端口：{address.port}</code>
+                <div>
+                  <button type="button" className={shareFeedback?.action === "used" && shareFeedback.url === url ? "is-success" : ""} disabled={!editable || location.protocol === "https:"} onClick={() => { setRelayAddress(address); showShareFeedback("used", url); }}>{shareFeedback?.action === "used" && shareFeedback.url === url ? <><Check />已使用</> : "使用此地址"}</button>
+                  <button type="button" className={shareFeedback?.action === "copied" && shareFeedback.url === url ? "is-success" : ""} onClick={async () => { if (await copyText(`中继 IP：${address.host}\n端口：${address.port}\n协议：${address.protocol}\n路径：${address.path}\n房间码：${room}\n请选择解密端，并填写以上信息。`)) showShareFeedback("copied", url); }}>{shareFeedback?.action === "copied" && shareFeedback.url === url ? <><Check />已复制</> : "复制给解密端"}</button>
+                </div>
+                {shareFeedback?.url === url && <p className="network-action-feedback" role="status">{shareFeedback.action === "used" ? "已将这组 IP 和端口填入连接设置" : "连接信息与房间码已复制，可发送给解密端"}</p>}
+              </div>;
+            })}
+            {!lanUrls.length && <p className="mt-2">暂未发现局域网地址，请检查主机网络；也可以在主机运行 ipconfig，查看当前网络的 IPv4 地址。</p>}
+            {location.protocol === "https:" && <p className="mt-2">当前为 HTTPS 页面，请使用下方高级设置中的公共 WSS 中继；本地 WS 调试请打开 http://localhost 页面。</p>}
+          </details>
+        ) : (
+          <details className="network-relay-help mt-2 text-xs leading-5 text-white/50">
+            <summary className="cursor-pointer">解密端怎么填写？查看示例</summary>
+            <p className="mt-2">假设加密端提供 IP 192.168.1.10、端口 5173，你就在上方分别填写这两个值，再把下面的房间码改成对方提供的房间码。</p>
+            <p className="mt-2">这里不需要查找或分享本机 IP。连接后等待加密端提议算法，点击“接受该算法”，即可接收消息和文件。</p>
+          </details>
+        )}
+        <details className="network-relay-help network-relay-advanced mt-2 text-xs leading-5 text-white/50">
+          <summary className="cursor-pointer">高级设置 · 公共中继 / 协议</summary>
+          <p className="mt-2">加密 / 解密角色不决定谁运行中继。若约定使用解密端电脑或公共服务器作为中继，两端都填那台中继主机的 IP / 域名与端口。</p>
+          <div className="network-address-fields mt-2">
+            <label className="field-label"><span>协议</span><select aria-label="中继协议" className="field-control" value={relayAddress.protocol} onChange={(event) => setRelayAddress((current) => ({ ...current, protocol: event.target.value as "ws" | "wss" }))} disabled={!editable}><option value="ws">WS（本地）</option><option value="wss">WSS（加密）</option></select></label>
+            <label className="field-label"><span>服务路径</span><input aria-label="中继服务路径" className="field-control" value={relayAddress.path} onChange={(event) => setRelayAddress((current) => ({ ...current, path: event.target.value }))} disabled={!editable} /></label>
+          </div>
+          <p className="mt-2">跨网络需使用双方可访问的中继。HTTPS 页面必须选择 WSS，端口通常为 443；切换协议后请核对端口。</p>
+          <code className="network-relay-preview">{relayPreview || "请填写有效的 IP、端口及路径"}</code>
         </details>
 
         <label className="field-label mt-5">
@@ -446,6 +519,8 @@ export default function NetworkView() {
           </div>
         </label>
 
+        <p className="network-port-hint">{role === "encryptor" ? "将此房间码发给解密端，两端进入同一个房间。" : "请填写加密端提供的房间码，不要保留各自随机生成的不同房间码。"}</p>
+
         <button className={`mt-3 w-full ${status === "offline" || status === "error" ? "primary-button" : "secondary-button"}`} data-agent-id="network.connect" type="button" onClick={status === "offline" || status === "error" ? connect : disconnect}>
           {status === "connecting" ? <LoaderCircle className="animate-spin" /> : status === "offline" || status === "error" ? <Link /> : <Unplug />}
           {status === "offline" || status === "error" ? "连接安全房间" : status === "connecting" ? "连接中…" : "断开连接"}
@@ -453,13 +528,13 @@ export default function NetworkView() {
 
         <div className={`connection-status mt-4 is-${status}`}>
           <span className="connection-orb" />
-          <div><strong>{status === "secure" ? "SECURE" : status.toUpperCase()}</strong><p>{statusText}</p></div>
+          <div><strong>{connectionLabel}</strong><p>{channelReady ? "密钥交换与算法协商已完成，可以开始加密通信" : statusText}</p></div>
         </div>
         {serverId && <p className="mt-2 text-xs leading-5 text-white/45">中继服务标识（两端应一致）：<code data-testid="relay-server-id" className="block break-all text-emerald-100/70">{serverId}</code></p>}
 
         <div className="mt-6 border-t border-white/10 pt-5">
           <div className="mb-2 flex items-center justify-between">
-            <span className="field-caption">算法协商</span>
+            <span className="field-caption">{role === "encryptor" ? "选择并提议算法" : "确认发送方的算法"}</span>
             {negotiatedAlgorithm && <span className="verified-chip"><Check />已确认</span>}
           </div>
           <select aria-label="通信算法" className="field-control" value={selectedAlgorithm} onChange={(event) => setSelectedAlgorithm(event.target.value as AlgorithmId)} disabled={role === "decryptor"}>
@@ -470,18 +545,18 @@ export default function NetworkView() {
           ) : pendingAlgorithm ? (
             <button className="primary-button mt-2 w-full" type="button" onClick={accept} disabled={!isSecure}><Check />接受该算法</button>
           ) : (
-            <p className="mt-2 text-xs leading-5 text-white/35">等待加密端发起算法协商</p>
+            <p className="mt-2 text-xs leading-5 text-white/35">{negotiatedAlgorithm ? "算法已确认，正在监听加密消息" : "等待加密端发起算法协商"}</p>
           )}
         </div>
 
-        <div className="mt-6 space-y-2 text-xs text-white/40">
-          <div className="flex items-center justify-between"><span>Socket 对端</span><b className={peerPresent ? "text-emerald-200" : "text-white/35"}>{peerPresent ? "ONLINE" : "WAITING"}</b></div>
+        <div className="network-diagnostics mt-6 space-y-2 text-xs text-white/40">
+          <div className="flex items-center justify-between"><span>{role === "encryptor" ? "解密端连接" : "加密端连接"}</span><b className={peerPresent ? "text-emerald-200" : "text-white/35"}>{peerPresent ? "ONLINE" : "WAITING"}</b></div>
           <div className="flex items-center justify-between"><span>DH 公钥</span><b className={peerDh ? "text-emerald-200" : "text-white/35"}>{peerDh ? "RECEIVED" : "PENDING"}</b></div>
           <div className="flex items-center justify-between"><span>会话指纹</span><b className="font-mono text-white/60">{sharedSecret ? sharedSecret.slice(0, 10).toUpperCase() : "—"}</b></div>
         </div>
       </aside>
 
-      <section className="flex min-h-0 flex-col p-4 sm:p-6">
+      <section className="network-console flex min-h-0 flex-col p-4 sm:p-6">
         <header className="mb-4 flex items-center justify-between gap-3">
           <div>
             <p className="eyebrow">{role === "encryptor" ? "ENCRYPTOR CONSOLE" : "DECRYPTOR CONSOLE"}</p>
@@ -490,32 +565,54 @@ export default function NetworkView() {
           <div className={`secure-seal ${isSecure ? "is-ready" : ""}`}><ShieldCheck /><span>{isSecure ? "端到端密钥就绪" : "等待 DH 交换"}</span></div>
         </header>
 
+        <div className={`network-progress is-${status}`}>
+          <div className="network-progress-heading" aria-live="polite">
+            <span><span className="network-live-dot" />安全连接进度</span>
+            <strong>{status === "error" ? "请检查连接" : `${completedSteps} / 4 步骤已完成`}</strong>
+          </div>
+          <div className="network-progress-track" role="progressbar" aria-label="安全连接进度" aria-valuemin={0} aria-valuemax={4} aria-valuenow={completedSteps} aria-valuetext={`${connectionLabel}，${completedSteps} / 4 步骤已完成`}>
+            <span style={{ width: `${completedSteps * 25}%` }} />
+          </div>
+          <ol className="network-progress-steps">
+            {connectionSteps.map((label, index) => (
+              <li key={label} className={index < completedSteps ? "is-complete" : index === completedSteps && !editable ? "is-current" : ""} aria-current={index === completedSteps && !editable ? "step" : undefined}>
+                <span>{index < completedSteps ? <Check aria-hidden="true" /> : index + 1}</span>{label}
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <div className="network-log-heading"><span>通信记录</span><span>{messages.filter((item) => item.direction !== "system").length} 条消息 · {files.length} 个文件</span></div>
         <div ref={logRef} className="message-stage soft-scroll min-h-[220px] flex-1 overflow-y-auto rounded-[26px] p-4 sm:p-5">
           {!messages.length && !files.length && (
             <div className="grid h-full min-h-44 place-items-center text-center">
               <div><Radio className="mx-auto h-7 w-7 text-white/25" /><p className="mt-3 text-sm text-white/35">连接另一台设备后，通信记录会出现在这里</p></div>
             </div>
           )}
-          <div className="space-y-3">
-            {messages.map((item) => item.direction === "system" ? (
-              <div className="system-message" key={item.id}><span>{item.time}</span>{item.text}</div>
-            ) : (
-              <div className={`chat-row ${item.direction === "out" ? "is-out" : "is-in"}`} key={item.id}>
-                <div className="chat-bubble">
-                  {item.cipher && <CipherBlock cipher={item.cipher} outbound={item.direction === "out"} onCopy={(text) => void copyText(text)} />}
-                  <p className="whitespace-pre-wrap break-words">{item.text}</p>
-                  <div><span>{item.algorithm}</span><span>{item.time}</span>{item.verified !== undefined && <span className={item.verified ? "text-emerald-200" : "text-amber-200"}>{item.verified ? "MD5 ✓" : "MD5 !"}</span>}</div>
-                </div>
-              </div>
-            ))}
-            {files.map((file) => (
-              <a className="file-card" href={file.url} download={file.name} key={file.id}>
-                <span className="file-icon"><File /></span>
-                <span className="min-w-0 flex-1"><strong className="block truncate">{file.name}</strong><small>{formatBytes(file.size)} · AES-GCM 文件通道</small></span>
-                <span className={file.verified ? "verified-chip" : "warning-chip"}>{file.verified ? <Check /> : "!"}{file.verified ? "MD5 已验证" : "校验失败"}</span>
-                <FileDown className="h-5 w-5" />
-              </a>
-            ))}
+          <div className="network-timeline space-y-3">
+            {timeline.map((entry) => {
+              if (entry.kind === "message") {
+                const item = entry.item;
+                return item.direction === "system" ? (
+                  <div className="system-message" key={item.id}><span>{item.time}</span><p>{item.text}</p></div>
+                ) : (
+                  <div className={`chat-row ${item.direction === "out" ? "is-out" : "is-in"}`} key={item.id}>
+                    <div className="chat-bubble">
+                      {item.cipher && <CipherBlock cipher={item.cipher} outbound={item.direction === "out"} onCopy={(text) => void copyText(text)} />}
+                      <p className="whitespace-pre-wrap break-words">{item.text}</p>
+                      <div><span>{item.algorithm}</span><span>{item.time}</span>{item.verified !== undefined && <span className={item.verified ? "text-emerald-200" : "text-amber-200"}>{item.verified ? "MD5 ✓" : "MD5 !"}</span>}</div>
+                    </div>
+                  </div>
+                );
+              }
+              const file = entry.item;
+              return <a className={`file-card is-${file.direction}`} href={file.url} download={file.name} key={file.id}>
+                <span className="file-icon">{file.direction === "out" ? <FileUp /> : <File />}</span>
+                <span className="min-w-0 flex-1"><strong className="block truncate">{file.direction === "out" ? "已发送 · " : "已接收 · "}{file.name}</strong><small>{formatBytes(file.size)} · AES-256-GCM 加密文件通道</small></span>
+                <span className={file.verified ? "verified-chip" : "warning-chip"}>{file.verified ? <Check /> : "!"}{file.direction === "out" ? "MD5 已生成" : file.verified ? "MD5 已验证" : "校验失败"}</span>
+                <FileDown className="h-5 w-5" aria-label="下载文件" />
+              </a>;
+            })}
           </div>
         </div>
 
@@ -536,7 +633,7 @@ export default function NetworkView() {
             disabled={!canSend || sending}
           />
           <div className="flex items-center justify-between gap-2 px-1">
-            <div className="flex items-center gap-2 text-[11px] text-white/35">
+            <div className="network-composer-hint flex items-center gap-2 text-[11px] text-white/35">
               <span className="hidden sm:inline">消息：协商算法</span><span>文件：AES-256-GCM</span>
             </div>
             <div className="flex gap-2">

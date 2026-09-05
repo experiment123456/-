@@ -1,0 +1,223 @@
+/* Scoped typography and layout only: retain the existing panel/backdrop fills. */
+.network-view.app-panel {
+  font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+  color: #f3f8fb;
+  text-shadow: 0 1px 4px #13232d;
+}
+
+.network-view.app-panel h1,
+.network-view.app-panel h2 {
+  font-family: "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  font-weight: 650;
+  letter-spacing: .025em;
+  font-size: clamp(25px, 2vw, 34px);
+}
+
+.network-view .eyebrow {
+  color: #b8eee3;
+  font-size: 12px;
+  letter-spacing: .16em;
+}
+
+.network-view .panel-sidebar > p,
+.network-view .panel-sidebar details,
+.network-view .panel-sidebar details p,
+.network-view .panel-sidebar .text-xs {
+  color: #e0eaf0;
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.network-view .field-caption,
+.network-view .field-label > span {
+  color: #f0f6fb;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: .025em;
+}
+
+.network-view .field-control {
+  min-height: 48px;
+  font-size: 15px;
+  color: #f4fbff;
+  border-color: #a8cbd466;
+}
+
+.network-view .field-control:disabled {
+  color: #d9e9f0;
+  -webkit-text-fill-color: #d9e9f0;
+}
+
+.network-view .field-control:focus-visible,
+.network-view button:focus-visible,
+.network-view summary:focus-visible,
+.network-view a:focus-visible {
+  outline: 2px solid #88ebc3;
+  outline-offset: 3px;
+}
+
+.network-view .role-picker button {
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 10px;
+  color: #d1dee8;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.network-view .role-picker button svg { width: 21px; height: 21px; }
+.network-view .role-picker button.is-active { color: #b0ffda; border-color: #87e8bb; }
+.network-view .network-relay-hint strong { color: #b8ffdf; font-weight: 650; }
+.network-view .network-relay-help summary { color: #b8ffdf; font-weight: 600; padding-block: 5px; }
+.network-view .network-relay-help button { color: #b8ffdf; }
+.network-view [data-testid="relay-server-id"] { color: #b6e7fa; font-size: 13px; }
+
+.network-view .connection-status { padding: 15px; }
+.network-view .connection-status strong { font-size: 16px; color: #ffe0a0; letter-spacing: .03em; }
+.network-view .connection-status p { color: #e2edf2; font-size: 14px; line-height: 1.65; }
+.network-view .connection-status.is-secure strong { color: #a7ffd4; }
+.network-view .connection-status.is-error strong { color: #ffb3ab; }
+.network-view .network-diagnostics > div { gap: 12px; padding-block: 5px; }
+.network-view .network-diagnostics b { color: #ffe0a0; font-size: 13px; }
+.network-view .network-diagnostics b.text-emerald-200 { color: #a7ffd4; }
+.network-view .network-diagnostics b.font-mono { color: #b6e7fa; letter-spacing: .04em; }
+
+.network-view .primary-button,
+.network-view .secondary-button,
+.network-view .mini-wide-button,
+.network-view .send-button { font-size: 15px; min-height: 46px; }
+.network-view .primary-button,
+.network-view .send-button { text-shadow: none; }
+.network-view .secondary-button,
+.network-view .mini-wide-button { color: #edf7ff; }
+
+.network-view .secure-seal { color: #ffe0a0; font-size: 13px; }
+.network-view .secure-seal.is-ready { color: #a7ffd4; border-color: #91eac066; }
+.network-view .secure-seal svg { width: 17px; height: 17px; }
+.network-view .network-console { min-width: 0; }
+.network-view .network-console > header { flex-wrap: wrap; }
+
+.network-progress { flex-shrink: 0; padding: 4px 2px 18px; }
+.network-progress-heading,
+.network-log-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; }
+.network-progress-heading > span { display: flex; align-items: center; gap: 9px; font-weight: 600; }
+.network-progress-heading strong { font-size: 13px; color: #b5f8d8; font-weight: 550; }
+.network-live-dot { width: 7px; height: 7px; border-radius: 50%; background: #b0c4d2; }
+.is-secure .network-live-dot { background: #92f5be; box-shadow: 0 0 12px #66e6a6; }
+.is-error .network-live-dot { background: #ffaaa4; }
+.network-progress.is-error strong { color: #ffb3ab; }
+.network-progress-track { height: 7px; margin: 14px 0; border-radius: 20px; background: #aac4d133; overflow: hidden; }
+.network-progress-track > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #47caaa, #b5f596); box-shadow: 0 0 14px #79ebba55; transition: width 350ms ease; }
+.network-progress-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 0; margin: 0; list-style: none; }
+.network-progress-steps li { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #dae7f0; }
+.network-progress-steps li > span { display: grid; place-items: center; flex-shrink: 0; width: 25px; height: 25px; border: 1px solid #aec4d58c; border-radius: 50%; font-size: 12px; font-family: ui-monospace, Consolas, monospace; }
+.network-progress-steps svg { width: 15px; height: 15px; }
+.network-progress-steps .is-complete { color: #b0ffda; }
+.network-progress-steps .is-complete > span { border-color: #8deaba; }
+.network-progress-steps .is-current { color: #ffe0a0; }
+.network-progress-steps .is-current > span { border-color: #ffe0a0; }
+.network-log-heading { padding: 0 3px 10px; color: #edf6fb; font-weight: 600; }
+.network-log-heading > span:last-child { font-size: 13px; color: #d0e1ec; font-weight: 400; }
+
+.network-view .system-message { justify-content: flex-start; align-items: baseline; gap: 14px; padding: 8px 0 8px 12px; border-left: 2px solid #8bdcbe; color: #eaf5fc; font-size: 14px; line-height: 1.7; text-align: left; }
+.network-view .system-message span { flex-shrink: 0; color: #b8e3f6; opacity: 1; font-size: 12px; }
+.network-view .system-message p { margin: 0; overflow-wrap: anywhere; }
+.network-view .message-stage > .grid p { color: #ebf4f9; font-size: 16px; line-height: 1.8; }
+.network-view .message-stage > .grid svg { color: #afeedb; }
+.network-view .chat-bubble { min-width: 0; max-width: min(88%, 720px); padding: 16px 18px; font-size: 17px; line-height: 1.8; }
+.network-view .is-out .chat-bubble { color: #193d32; text-shadow: none; }
+.network-view .chat-bubble > div { font-size: 12px; opacity: 1; gap: 12px; color: #d2e3ec; }
+.network-view .is-out .chat-bubble > div { color: #385e53; }
+.network-view .is-out .chat-bubble .text-emerald-200 { color: #16654b; font-weight: 650; }
+.network-view .chat-cipher summary { font-size: 13px; opacity: 1; }
+.network-view .chat-cipher-body { font-size: 13px; }
+.network-view .chat-cipher-copy { font-size: 12px; padding: 3px 10px; }
+.network-view .verified-chip,
+.network-view .warning-chip { font-size: 12px; font-weight: 600; }
+.network-view .verified-chip { color: #b1ffdb; }
+.network-view .file-card { flex-wrap: wrap; gap: 12px; }
+.network-view .file-card strong { font-size: 15px; }
+.network-view .file-card small { color: #d8e9f1; font-size: 13px; }
+.network-view .composer { flex-shrink: 0; }
+.network-view .composer textarea { font-family: inherit; font-size: 16px; line-height: 1.7; }
+.network-view .composer textarea::placeholder { color: #d1dde7; }
+.network-view .network-composer-hint { flex-wrap: wrap; color: #d0e1ec; font-size: 12px; }
+
+.network-role-guide { margin-top: 18px; padding: 2px 0 2px 12px; border-left: 2px solid #9cecc7; }
+.network-role-guide > strong { color: #b8ffdf; font-size: 15px; line-height: 1.7; }
+.network-role-guide > p { margin: 7px 0 0; color: #e0eaf0; font-size: 14px; line-height: 1.75; }
+.network-role-guide.is-decryptor { border-color: #eed396; }
+.network-role-guide.is-decryptor > strong { color: #ffe7b6; }
+.network-address-fields { display: grid; grid-template-columns: minmax(0, 1fr) 94px; gap: 10px; }
+.network-address-fields .field-label { min-width: 0; }
+.network-address-fields .field-control { width: 100%; min-width: 0; padding-inline: 10px; }
+.network-view .panel-sidebar .network-port-hint { margin-top: 8px; color: #d2e1ec; font-size: 13px; line-height: 1.75; }
+.network-view .panel-sidebar .network-loopback-note { margin-top: 10px; padding-left: 10px; border-left: 2px solid #e9c884; color: #ffe5b2; font-size: 13px; line-height: 1.75; }
+.network-share-address { padding: 12px 0; border-bottom: 1px solid #b8dcce40; }
+.network-share-address code { display: block; overflow-wrap: anywhere; color: #b8ffdf; font-size: 14px; }
+.network-share-address > div { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.network-share-address button { padding: 5px 9px; border: 1px solid #b8dcce66; border-radius: 8px; font-size: 13px; }
+.network-share-address button:disabled { opacity: .45; }
+.network-share-address button svg { width: 14px; height: 14px; }
+.network-share-address button.is-success { display: inline-flex; align-items: center; gap: 5px; color: #143f31; border-color: #a8f1cf; background: #bff6dc; text-shadow: none; }
+.network-view .panel-sidebar .network-action-feedback { margin-top: 9px; color: #b8ffdf; font-size: 13px; line-height: 1.55; }
+.network-relay-advanced .network-address-fields { grid-template-columns: 1fr 1fr; }
+.network-relay-preview { display: block; padding-top: 10px; overflow-wrap: anywhere; color: #b8e3f6; font-size: 13px; }
+
+/* Only received message cards get the cream finish; panel masks stay intact. */
+.network-view .is-in .chat-bubble {
+  color: #493d28;
+  text-shadow: none;
+  background: linear-gradient(135deg, #fff9e9, #f2e4bc);
+  border-color: #e7d49c;
+  box-shadow: inset 0 1px 0 #fffdf5, 0 8px 24px #20180b1a;
+}
+.network-view .is-in .chat-bubble > div { color: #756341; }
+.network-view .is-in .chat-bubble .text-emerald-200 { color: #346e52; font-weight: 650; }
+.network-view .is-in .chat-bubble .text-amber-200 { color: #9a441c; font-weight: 650; }
+.network-view .is-in .chat-cipher summary { color: #756341; }
+.network-view .is-in .chat-cipher-body { color: #54452e; background: #e8d9b0; border-color: #c7ae7066; }
+.network-view .is-in .chat-cipher-copy { color: #54452e; border-color: #b7a06c; background: #fff7df; }
+.network-view .file-card.is-out { margin-left: auto; border-color: #8bdcbe66; background: linear-gradient(135deg, #17372f, #1f4a3e); }
+.network-view .file-card.is-out .file-icon { color: #b7f8d6; background: #a9efd522; }
+.network-view .file-card.is-out small { color: #cae7db; }
+.network-view .file-card.is-out .verified-chip { color: #b7f8d6; background: #a9efd522; }
+.network-view .file-card.is-in {
+  margin-right: auto;
+  margin-left: 0;
+  max-width: min(88%, 720px);
+  color: #493d28;
+  text-shadow: none;
+  border-color: #e7d49c;
+  background: linear-gradient(135deg, #fff9e9, #f2e4bc);
+  box-shadow: inset 0 1px 0 #fffdf5, 0 8px 24px #20180b1a;
+}
+.network-view .file-card.is-in:hover { border-color: #d8bc70; background: linear-gradient(135deg, #fffdf4, #f5e7bd); }
+.network-view .file-card.is-in .file-icon { color: #725f38; background: #c9af6d30; }
+.network-view .file-card.is-in small { color: #756341; }
+.network-view .file-card.is-in .verified-chip { color: #346e52; background: #5a9d7920; }
+
+@media (min-width: 1024px) {
+  .network-view { grid-template-columns: clamp(330px, 26vw, 390px) minmax(0, 1fr); }
+}
+
+@media (max-width: 1023px) {
+  .network-view { overflow-y: auto; display: flex; flex-direction: column; }
+  .network-view .panel-sidebar { flex-shrink: 0; overflow: visible; }
+  .network-view .network-console { min-height: 680px; flex-shrink: 0; }
+  .network-view .message-stage { max-height: 500px; }
+}
+
+@media (max-width: 600px) {
+  .network-progress-steps { gap: 8px; }
+  .network-progress-steps li { flex-direction: column; gap: 6px; font-size: 12px; }
+  .network-view .system-message { flex-direction: column; gap: 2px; }
+  .network-view .composer > div { flex-wrap: wrap; }
+  .network-view .composer > div > .flex:last-child { margin-left: auto; }
+  .network-view .chat-bubble { max-width: 96%; padding: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .network-progress-track > span { transition: none; }
+}

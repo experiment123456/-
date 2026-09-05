@@ -417,7 +417,7 @@ export default function AgentExperience({ mode, userId, userName, onNavigate }: 
     }
     if (topic === "network") {
       await navigateAndWait("network", "network.relay");
-      await showGuide("network.relay", "两台设备必须填写同一个可访问的 WebSocket 中继地址。", 2_300);
+      await showGuide("network.relay", "将中继主机的 IP 和端口分开填写。推荐由加密端运行中继，两端填写加密端提供的相同 IP、端口和房间码。", 2_300);
       await sleep(900);
       await showGuide("network.room", "双方还需要输入相同房间码。Agent 不会替你自动联网。", 3_200);
       await sleep(900);

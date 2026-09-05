@@ -7,6 +7,23 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "playwright-core";
 import { browserLocation } from "./browser-utils.mjs";
 import { md5 } from "../src/crypto/engine.ts";
+import { buildRelayAddress, splitRelayAddress } from "../src/network/connection.ts";
+
+// Split fields must retain existing saved endpoints and reject ambiguous input.
+for (const [endpoint, page] of [
+  ["ws://192.168.1.10:5173/ws", "http://localhost:5173"],
+  ["wss://relay.example/ws", "https://app.example"],
+  ["wss://relay.example:8443/custom/ws?room=test", "https://app.example"],
+  ["ws://[::1]:5173/ws", "http://localhost:5173"],
+]) {
+  assert.equal(buildRelayAddress(splitRelayAddress(endpoint, page), page), endpoint);
+}
+const localAddress = splitRelayAddress("ws://localhost:5173/ws", "http://localhost:5173");
+for (const port of ["", "0", "65536", "-1", "51.73", "5173/ws"]) {
+  assert.throws(() => buildRelayAddress({ ...localAddress, port }, "http://localhost"), /端口/);
+}
+assert.throws(() => buildRelayAddress({ ...localAddress, host: "localhost:5173" }, "http://localhost"), /IP/);
+assert.throws(() => buildRelayAddress(localAddress, "https://app.example"), /HTTPS/);
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const output = await mkdtemp(join(tmpdir(), "lumora-network-qa-"));
@@ -70,19 +87,26 @@ try {
   for (const page of [sender, receiver]) await page.getByLabel("房间码", { exact: true }).fill("TWO-SERVICES");
   // First reproduce isolation: equal room code with each computer's own relay is insufficient.
   await receiver.getByRole("button", { name: "解密端", exact: true }).click();
+  assert.match(await sender.locator(".network-role-guide").textContent(), /发送方/);
+  assert.match(await receiver.locator(".network-role-guide").textContent(), /接收方/);
+  assert.equal(await receiver.getByText("查看并分享本机 IP（推荐加密端运行中继）", { exact: true }).count(), 0);
+  assert.match(await receiver.locator("#network-address-help").textContent(), /加密端电脑的局域网 IP/);
   await Promise.all([sender.getByRole("button", { name: "连接安全房间" }).click(), receiver.getByRole("button", { name: "连接安全房间" }).click()]);
   await Promise.all([sender.getByTestId("relay-server-id").waitFor(), receiver.getByTestId("relay-server-id").waitFor()]);
   assert.notEqual(await sender.getByTestId("relay-server-id").textContent(), await receiver.getByTestId("relay-server-id").textContent());
   for (const page of [sender, receiver]) assert.equal(await page.locator(".composer textarea").isDisabled(), true);
   for (const page of [sender, receiver]) {
     await page.getByRole("button", { name: "断开连接", exact: true }).click();
-    await page.getByLabel("中继服务器地址", { exact: true }).fill(endpoint);
+    const address = splitRelayAddress(endpoint, baseA);
+    await page.getByLabel("中继主机 IP 或域名", { exact: true }).fill(address.host);
+    await page.getByLabel("中继端口号", { exact: true }).fill(address.port);
   }
   await Promise.all([sender.getByRole("button", { name: "连接安全房间" }).click(), receiver.getByRole("button", { name: "连接安全房间" }).click()]);
   await Promise.all([sender.getByText(/DH 交换完成/).waitFor(), receiver.getByText(/DH 交换完成/).waitFor()]);
   assert.equal(await sender.getByTestId("relay-server-id").textContent(), infoA.serverId);
   assert.equal(await receiver.getByTestId("relay-server-id").textContent(), infoA.serverId);
   await accept(sender, receiver);
+  assert.equal(await receiver.getByRole("progressbar", { name: "安全连接进度" }).getAttribute("aria-valuenow"), "4");
   console.log("Shared relay DH and negotiation passed");
   const ids = ["aes", "multiliteral", "autokey", "playfair", "double", "ca", "sm2"];
   for (const [index, algorithm] of ids.entries()) {
@@ -109,6 +133,10 @@ try {
   results.crossServiceChineseMessages = ids;
   for (const [name, buffer] of [["中文传输.json", Buffer.from('{"内容":"你好，队友🔐"}\n')], ["empty.txt", Buffer.alloc(0)]]) {
     await sender.locator('input[type="file"]').setInputFiles({ name, mimeType: "application/octet-stream", buffer });
+    const sentCard = sender.locator(".file-card.is-out").filter({ hasText: name });
+    await sentCard.waitFor();
+    assert.ok((await sentCard.textContent()).includes("已发送"));
+    assert.ok((await sentCard.textContent()).includes("MD5 已生成"));
     const card = receiver.locator(".file-card").filter({ hasText: name });
     await card.waitFor();
     assert.ok((await card.textContent()).includes("MD5 已验证"));
@@ -116,6 +144,22 @@ try {
     await enabled(sender.locator(".composer textarea"));
   }
   results.fileByteRoundTrips = 2;
+  const afterFileMessage = "文件之后发送的消息";
+  await sender.locator(".composer textarea").fill(afterFileMessage);
+  await sender.getByRole("button", { name: "加密发送", exact: true }).click();
+  await receiver.locator(".chat-row.is-in .chat-bubble").filter({ hasText: afterFileMessage }).waitFor();
+  for (const page of [sender, receiver]) {
+    const ordering = await page.locator(".network-timeline > *").evaluateAll((nodes, message) => ({
+      file: nodes.findLastIndex((node) => node.classList.contains("file-card")),
+      message: nodes.findIndex((node) => node.textContent?.includes(String(message))),
+    }), afterFileMessage);
+    assert.ok(ordering.file >= 0 && ordering.message > ordering.file, "file/message timeline must preserve send order");
+  }
+  const receivedFileCard = receiver.locator(".file-card.is-in").last();
+  assert.ok((await receivedFileCard.textContent()).includes("已接收"));
+  const receivedBubble = receiver.locator(".chat-row.is-in .chat-bubble").filter({ hasText: afterFileMessage });
+  assert.equal(await receivedFileCard.evaluate((element) => getComputedStyle(element).marginLeft), "0px");
+  assert.equal(await receivedBubble.evaluate((element) => getComputedStyle(element.parentElement).justifyContent), "normal");
   await receiver.screenshot({ path: join(output, "shared-relay.png"), fullPage: true });
   const fingerprint = await sender.getByText(/DH 交换完成/).last().textContent();
   await receiver.getByRole("button", { name: "断开连接", exact: true }).click();

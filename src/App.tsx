@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
-import { ArrowLeft, ArrowRight, Braces, CircleUserRound, Compass, KeyRound, LogIn, Menu, Network, Play, Sparkles, Volume2, VolumeX, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, Braces, CircleUserRound, Compass, KeyRound, LogIn, Menu, Network, Play, Sparkles, Volume2, VolumeX, X } from "lucide-react";
 import { apiRequest, type AccountUser } from "./auth";
 import BackgroundRipples from "./components/BackgroundRipples";
 import CatalogView from "./views/CatalogView";
+import ProjectView from "./views/ProjectView";
 import DhView from "./views/DhView";
 import NetworkView from "./views/NetworkView";
 import WorkbenchView from "./views/WorkbenchView";
@@ -14,7 +15,7 @@ import OceanDashboard from "./views/OceanDashboard";
 import AgentExperience, { type AgentNavigateTarget } from "./components/AgentExperience";
 import WelcomeScreen from "./components/WelcomeScreen";
 
-type LabView = "workbench" | "dh" | "network" | "catalog" | "innovation";
+type LabView = "workbench" | "dh" | "network" | "catalog" | "innovation" | "project";
 type ModuleView = "image-lab" | "ocean";
 type AppView = "home" | LabView | ModuleView | "agent" | "login" | "account";
 type InnovationTransitionPhase = "idle" | "covering" | "revealing";
@@ -35,13 +36,14 @@ const navigation: Array<{ view: LabView; label: string; caption: string; icon: t
   { view: "dh", label: "DH 交换", caption: "MODP 2048-bit", icon: KeyRound },
   { view: "network", label: "双机通信", caption: "消息与文件传输", icon: Network },
   { view: "innovation", label: "AI 创新", caption: "动态海洋概念", icon: Sparkles },
+  { view: "project", label: "项目介绍", caption: "背景与系统架构", icon: BookOpen },
 ];
 
 const uiFont: CSSProperties = { fontFamily: "system-ui, sans-serif" };
 
 function viewFromHash(): AppView {
   const value = location.hash.replace(/^#\/?/, "") as AppView;
-  return ["workbench", "dh", "network", "catalog", "innovation", "image-lab", "ocean", "agent", "login", "account"].includes(value) ? value : "login";
+  return ["workbench", "dh", "network", "catalog", "innovation", "project", "image-lab", "ocean", "agent", "login", "account"].includes(value) ? value : "login";
 }
 
 function App() {
@@ -424,7 +426,7 @@ function App() {
             <span><b className="block text-xl font-normal italic tracking-[-0.02em] sm:text-2xl">Lumora</b>{view !== "home" && <small className="hidden text-[9px] uppercase tracking-[0.25em] text-white/45 sm:block">Cipher Laboratory</small>}</span>
           </button>
 
-          <div className="liquid-glass hidden items-center gap-1 rounded-full p-1.5 md:flex" style={uiFont}>
+          <div className="liquid-glass hidden items-center gap-1 rounded-full p-1.5 min-[1100px]:flex" style={uiFont}>
             {navigation.map((item) => (
               <button key={item.view} type="button" data-agent-id={`nav.${item.view}`} onClick={() => navigate(item.view)} className={`rounded-full px-4 py-2 text-sm transition-colors duration-300 lg:px-5 ${view === item.view ? "bg-white/12 text-white" : "text-white/75 hover:text-white"}`}>
                 {item.label}
@@ -450,7 +452,7 @@ function App() {
               {user ? <CircleUserRound className="h-4 w-4" /> : <LogIn className="h-4 w-4" />}
               <span className="hidden xl:inline">{user ? user.displayName : "登录"}</span>
             </button>
-            <button className="liquid-glass relative grid h-11 w-11 place-items-center rounded-full md:hidden" type="button" onClick={() => setMenuOpen((open) => !open)} aria-label={menuOpen ? "关闭导航" : "打开导航"} aria-expanded={menuOpen}>
+            <button className="liquid-glass relative grid h-11 w-11 place-items-center rounded-full min-[1100px]:hidden" type="button" onClick={() => setMenuOpen((open) => !open)} aria-label={menuOpen ? "关闭导航" : "打开导航"} aria-expanded={menuOpen}>
               <Menu className={`absolute h-5 w-5 transition-all duration-300 ${menuOpen ? "rotate-90 scale-75 opacity-0" : "rotate-0 scale-100 opacity-100"}`} />
               <X className={`absolute h-5 w-5 transition-all duration-300 ${menuOpen ? "rotate-0 scale-100 opacity-100" : "-rotate-90 scale-75 opacity-0"}`} />
             </button>
@@ -501,6 +503,7 @@ function App() {
             {view === "dh" && <DhView />}
             {view === "network" && <NetworkView />}
             {view === "catalog" && <CatalogView onOpen={navigate} />}
+            {view === "project" && <ProjectView onNavigate={navigate} />}
             {view === "account" && user && <AccountView user={user} onUserChange={setUser} onLogout={() => { void logout(); }} />}
           </main>
         )}
@@ -519,7 +522,7 @@ function App() {
         <div className={`innovation-route-transition is-${innovationTransition}`} aria-hidden="true" />
       )}
 
-      <div className={`fixed inset-0 z-50 md:hidden ${menuOpen ? "pointer-events-auto" : "pointer-events-none"}`} aria-hidden={!menuOpen} data-ripple-block>
+      <div className={`fixed inset-0 z-50 min-[1100px]:hidden ${menuOpen ? "pointer-events-auto" : "pointer-events-none"}`} aria-hidden={!menuOpen} data-ripple-block>
         <div className={`absolute inset-0 bg-[#101516]/45 backdrop-blur-lg transition-opacity duration-500 ${menuOpen ? "opacity-100" : "opacity-0"}`} />
         <div className={`absolute inset-0 flex flex-col items-center justify-center gap-6 transition-opacity duration-500 ${menuOpen ? "opacity-100" : "opacity-0"}`} style={uiFont}>
           <button className="mb-4 text-sm uppercase tracking-[0.25em] text-white/45" type="button" onClick={() => navigate("home")}>Lumora Cipher</button>

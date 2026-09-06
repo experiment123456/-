@@ -452,6 +452,7 @@ function App() {
             musicPlaying={homeMusicPlaying}
             musicNeedsAction={homeMusicNeedsAction}
             onToggleMusic={toggleHomeMusic}
+            ripplesEnabled={settings.ripplesEnabled && !settings.reducedMotion}
           />
         </div>
       ) : isModuleView ? (

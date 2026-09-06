@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Bot, Image as ImageIcon, Play, ShieldCheck, Sparkles, Volume2, VolumeX, Waves } from "lucide-react";
 import JellyfishField from "../components/JellyfishField";
 import ReefBackground from "../components/ReefBackground";
+import BackgroundRipples from "../components/BackgroundRipples";
 import "./InnovationView.css";
 
 type InnovationTarget = "home" | "ocean" | "agent";
@@ -10,9 +11,10 @@ type InnovationViewProps = {
   musicPlaying: boolean;
   musicNeedsAction: boolean;
   onToggleMusic: () => void;
+  ripplesEnabled: boolean;
 };
 
-export default function InnovationView({ onNavigate, musicPlaying, musicNeedsAction, onToggleMusic }: InnovationViewProps) {
+export default function InnovationView({ onNavigate, musicPlaying, musicNeedsAction, onToggleMusic, ripplesEnabled }: InnovationViewProps) {
   const [entering, setEntering] = useState<InnovationTarget | null>(null);
   const entryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -30,6 +32,7 @@ export default function InnovationView({ onNavigate, musicPlaying, musicNeedsAct
   return (
     <div className="reef-page">
       <ReefBackground />
+      <BackgroundRipples active={ripplesEnabled} intensity={1.16} />
       <JellyfishField />
       <div className="reef-content">
         <header className="reef-header" data-ripple-block>
@@ -83,7 +86,7 @@ export default function InnovationView({ onNavigate, musicPlaying, musicNeedsAct
             <div><ImageIcon aria-hidden="true" /><span>图像安全<small>IMAGE SECURITY</small></span></div>
             <div><Waves aria-hidden="true" /><span>沉浸式学习<small>IMMERSIVE LEARNING</small></span></div>
           </div>
-          <p className="reef-jelly-hint">移动鼠标靠近水母，观察它们的逃离反应</p>
+          <p className="reef-jelly-hint">移动鼠标观察水母逃离，点击海面召集它们</p>
         </footer>
       </div>
     </div>

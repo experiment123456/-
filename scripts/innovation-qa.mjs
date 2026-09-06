@@ -49,6 +49,20 @@ try {
   const escapeDistance = Math.hypot(afterCenter.x - beforeCenter.x, afterCenter.y - beforeCenter.y);
   results.mouseEscape = escapeDistance > 12 && afterCenter.x < beforeCenter.x;
 
+  const gatherTarget = { x: 720, y: 410 };
+  const jellyCenters = async () => page.locator(".ocean-jellyfish").evaluateAll((elements) => elements.map((element) => {
+    const box = element.getBoundingClientRect();
+    return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+  }));
+  const beforeGather = await jellyCenters();
+  const averageDistance = (points) => points.reduce((sum, point) => sum + Math.hypot(point.x - gatherTarget.x, point.y - gatherTarget.y), 0) / points.length;
+  await page.mouse.click(gatherTarget.x, gatherTarget.y);
+  await page.waitForTimeout(80);
+  results.clickRipple = await page.locator(".water-ripple-click").count() > 0;
+  await page.waitForTimeout(1050);
+  const afterGather = await jellyCenters();
+  results.clickGather = averageDistance(afterGather) < averageDistance(beforeGather) - 30;
+
   results.homeEntryCount = await page.getByRole("button", { name: "返回 Lumora 首页", exact: true }).count();
   results.agentEntryCount = await page.getByRole("button", { name: "进入 AI 导师", exact: true }).count();
   results.imageEntryCount = await page.getByRole("button", { name: "进入图片实验", exact: true }).count();
@@ -137,6 +151,8 @@ const booleans = [
   results.noPreviewControls,
   results.noDuplicateMusicPrompt,
   results.mouseEscape,
+  results.clickRipple,
+  results.clickGather,
   results.homeEntryCount === 1,
   results.agentEntryCount === 1,
   results.imageEntryCount === 1,

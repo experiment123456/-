@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import WelcomeAbyssCanvas from "./WelcomeAbyssCanvas";
 
 export default function WelcomeScreen({ onDismiss }: { onDismiss: () => void }) {
   const [isLeaving, setIsLeaving] = useState(false);
@@ -11,7 +12,7 @@ export default function WelcomeScreen({ onDismiss }: { onDismiss: () => void }) 
   }, []);
 
   useEffect(() => {
-    const timer = window.setTimeout(dismiss, 3000);
+    const timer = window.setTimeout(dismiss, 6000);
     return () => window.clearTimeout(timer);
   }, [dismiss]);
 
@@ -36,30 +37,10 @@ export default function WelcomeScreen({ onDismiss }: { onDismiss: () => void }) 
         if (isLeaving && event.target === event.currentTarget) onDismiss();
       }}
     >
-      <div className="welcome-base" aria-hidden="true" />
-      <video
-        className="welcome-media"
-        autoPlay
-        muted
-        loop
-        playsInline
-        poster="/assets/ocean/dark-curtain-poster.jpg"
-        src="/assets/ocean/dark-curtain-loop.mp4"
-        aria-hidden="true"
-      />
-      <div className="welcome-scrim" aria-hidden="true" />
-      <video
-        className="welcome-jelly"
-        autoPlay
-        muted
-        loop
-        playsInline
-        src="/assets/ocean/aurex-jellyfish-overlay.mp4"
-        aria-hidden="true"
-      />
+      <WelcomeAbyssCanvas />
       <div className="welcome-content">
-        <p className="welcome-eyebrow">Lumora Cipher Laboratory</p>
-        <h1 className="welcome-title">Lumora</h1>
+        <p className="welcome-eyebrow">Lumora · Cipher Laboratory</p>
+        <h1 className="welcome-title">欢迎进入密码实验室</h1>
         <p className="welcome-tagline">在深海噪声之外，<i>守住每一段密钥。</i></p>
         <p className="welcome-hint">点击任意位置进入</p>
         <span className="welcome-progress" aria-hidden="true" />

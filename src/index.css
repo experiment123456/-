@@ -6346,40 +6346,12 @@ button:disabled {
   to { opacity: 0; transform: scale(1.035); }
 }
 
-.welcome-base {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background: radial-gradient(120% 120% at 50% 0%, #043047 0%, #021428 62%, #010c18 100%);
-}
-.welcome-media {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0.86;
-  filter: saturate(1.14) brightness(0.82) contrast(1.08);
-}
-.welcome-scrim {
+.welcome-abyss-canvas {
   position: absolute;
   inset: 0;
   z-index: 1;
-  background:
-    linear-gradient(180deg, rgba(1, 8, 20, 0.42), rgba(2, 12, 26, 0.18) 42%, rgba(1, 7, 17, 0.6)),
-    radial-gradient(90% 70% at 50% 52%, rgba(39, 125, 192, 0.1), transparent 62%);
-}
-.welcome-jelly {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  opacity: 0.58;
-  mix-blend-mode: screen;
-  filter: saturate(0.78) hue-rotate(5deg) brightness(1.04) contrast(1.08);
 }
 
 .welcome-content {
@@ -6403,12 +6375,14 @@ button:disabled {
   animation: welcome-rise 0.9s ease 0.15s both;
 }
 .welcome-title {
-  font-size: clamp(4rem, 14vw, 8.5rem);
-  font-style: italic;
-  font-weight: 400;
-  letter-spacing: -0.035em;
-  line-height: 1;
-  text-shadow: 0 0 60px rgba(56, 189, 248, 0.35);
+  font-family: system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: clamp(2.4rem, 6.4vw, 4.6rem);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1.18;
+  text-shadow:
+    0 0 26px rgba(56, 189, 248, 0.45),
+    0 0 90px rgba(56, 189, 248, 0.22);
   animation: welcome-rise 0.9s ease 0.3s both;
 }
 .welcome-tagline {
@@ -6434,8 +6408,8 @@ button:disabled {
   border-radius: 999px;
   background: linear-gradient(90deg, rgba(56, 189, 248, 0.9), rgba(125, 211, 252, 0.35));
   transform-origin: left center;
-  /* 3s 无延迟：与组件内 3 秒定时器同步走完 */
-  animation: welcome-progress 3s linear both;
+  /* 6s 无延迟：与组件内 6 秒定时器同步走完 */
+  animation: welcome-progress 6s linear both;
 }
 
 @keyframes welcome-rise {

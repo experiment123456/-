@@ -37,6 +37,27 @@ export default function WelcomeScreen({ onDismiss }: { onDismiss: () => void }) 
         if (isLeaving && event.target === event.currentTarget) onDismiss();
       }}
     >
+      <div className="welcome-base" aria-hidden="true" />
+      <video
+        className="welcome-media"
+        autoPlay
+        muted
+        loop
+        playsInline
+        poster="/assets/ocean/dark-curtain-poster.jpg"
+        src="/assets/ocean/dark-curtain-loop.mp4"
+        aria-hidden="true"
+      />
+      <div className="welcome-wash" aria-hidden="true" />
+      <video
+        className="welcome-jelly"
+        autoPlay
+        muted
+        loop
+        playsInline
+        src="/assets/ocean/aurex-jellyfish-overlay.mp4"
+        aria-hidden="true"
+      />
       <WelcomeAbyssCanvas />
       <div className="welcome-content">
         <p className="welcome-eyebrow">Lumora · Cipher Laboratory</p>

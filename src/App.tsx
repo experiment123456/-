@@ -17,10 +17,13 @@ type LabView = "workbench" | "dh" | "network" | "catalog" | "innovation";
 type ModuleView = "image-lab" | "ocean";
 type AppView = "home" | LabView | ModuleView | "agent" | "login" | "account";
 type WelcomePhase = "visible" | "leaving" | "hidden";
+type InnovationTransitionPhase = "idle" | "covering" | "revealing";
 
 const WELCOME_STORAGE_KEY = "lumora-welcome-seen";
 const WELCOME_DURATION = 3_000;
 const WELCOME_TRANSITION = 500;
+const INNOVATION_FADE_OUT = 450;
+const INNOVATION_FADE_IN = 500;
 
 const videos = [
   { label: "Golden Hour", src: "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260702_081127_0992a171-d3c6-4978-8213-0ec5df8b6d63.mp4" },
@@ -56,6 +59,7 @@ function initialWelcomePhase(): WelcomePhase {
 function App() {
   const [view, setView] = useState<AppView>(() => viewFromHash());
   const [welcomePhase, setWelcomePhase] = useState<WelcomePhase>(initialWelcomePhase);
+  const [innovationTransition, setInnovationTransition] = useState<InnovationTransitionPhase>("idle");
   const [activeVideo, setActiveVideo] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -72,6 +76,7 @@ function App() {
   const timerRef = useRef<number | null>(null);
   const welcomeTimerRef = useRef<number | null>(null);
   const welcomeExitRef = useRef<number | null>(null);
+  const innovationTransitionRef = useRef<number | null>(null);
   const videoRefs = useRef<Array<HTMLVideoElement | null>>([]);
   const loginVideoRef = useRef<HTMLVideoElement | null>(null);
   const homeMusicRef = useRef<HTMLAudioElement | null>(null);
@@ -124,6 +129,7 @@ function App() {
   useEffect(() => () => {
     if (welcomeTimerRef.current !== null) window.clearTimeout(welcomeTimerRef.current);
     if (welcomeExitRef.current !== null) window.clearTimeout(welcomeExitRef.current);
+    if (innovationTransitionRef.current !== null) window.clearTimeout(innovationTransitionRef.current);
   }, []);
 
   const playLoginVideo = useCallback((video: HTMLVideoElement, withSound: boolean) => {
@@ -270,6 +276,7 @@ function App() {
 
   const navigate = (requested: AppView) => {
     const next = requested === "account" && !user ? "login" : requested;
+    if (innovationTransition !== "idle") return;
     mediaViewRef.current = next;
     if (next !== "login") {
       loginRequestRef.current += 1;
@@ -282,9 +289,25 @@ function App() {
       homeMusicRef.current?.pause();
     }
     setMenuOpen(false);
-    if (next === "home") history.pushState(null, "", `${location.pathname}${location.search}`);
-    else location.hash = next;
-    setView(next);
+    const commitNavigation = () => {
+      if (next === "home") history.pushState(null, "", `${location.pathname}${location.search}`);
+      else location.hash = next;
+      setView(next);
+    };
+    const reducePageMotion = settings.reducedMotion || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (next === "innovation" && view !== "innovation" && !reducePageMotion) {
+      setInnovationTransition("covering");
+      innovationTransitionRef.current = window.setTimeout(() => {
+        commitNavigation();
+        setInnovationTransition("revealing");
+        innovationTransitionRef.current = window.setTimeout(() => {
+          setInnovationTransition("idle");
+          innovationTransitionRef.current = null;
+        }, INNOVATION_FADE_IN);
+      }, INNOVATION_FADE_OUT);
+      return;
+    }
+    commitNavigation();
   };
 
   const switchVideo = (index: number) => {
@@ -533,6 +556,10 @@ function App() {
         userName={user?.displayName}
         onNavigate={(target: AgentNavigateTarget) => navigate(target)}
       />
+
+      {innovationTransition !== "idle" && (
+        <div className={`innovation-route-transition is-${innovationTransition}`} aria-hidden="true" />
+      )}
 
       <div className={`fixed inset-0 z-50 md:hidden ${menuOpen ? "pointer-events-auto" : "pointer-events-none"}`} aria-hidden={!menuOpen} data-ripple-block>
         <div className={`absolute inset-0 bg-[#101516]/45 backdrop-blur-lg transition-opacity duration-500 ${menuOpen ? "opacity-100" : "opacity-0"}`} />

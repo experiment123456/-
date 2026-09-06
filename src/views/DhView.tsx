@@ -378,7 +378,7 @@ export default function DhView() {
   const nextDisabled = busy || (mode === "mitm" ? step >= 5 : step >= 3);
 
   return (
-    <div className="dh-readable app-panel panel-reveal soft-scroll h-full min-h-0 w-full overflow-y-auto rounded-[30px] p-5 sm:h-[96%] sm:w-[96%] sm:p-7 lg:p-9">
+    <div className={`dh-readable ${mode !== "normal" ? "dh-readable-security" : ""} app-panel panel-reveal soft-scroll h-full min-h-0 w-full overflow-y-auto rounded-[30px] p-5 sm:h-[96%] sm:w-[96%] sm:p-7 lg:p-9`}>
       <style>{`
         .dh-readable .eyebrow,.dh-readable .field-caption{font-size:.78rem;letter-spacing:.13em}
         .dh-readable .code-line{font-size:.86rem;line-height:1.55;min-height:3rem}
@@ -398,6 +398,27 @@ export default function DhView() {
         .dh-readable .dh-message-trace>div{padding:.9rem 1rem}
         .dh-readable .dh-message-trace>div>span{font-size:.76rem;line-height:1.4}
         .dh-readable .dh-message-trace>div>code{margin-top:.55rem;font-size:.94rem;line-height:1.7}
+        .dh-readable-security .eyebrow,.dh-readable-security .field-caption{color:rgba(255,255,255,.72);font-size:.9rem;line-height:1.55;letter-spacing:.11em}
+        .dh-readable-security .code-line{min-height:3.35rem;color:rgba(255,255,255,.8);font-size:1rem;line-height:1.72}
+        .dh-readable-security button{font-size:1.02rem}
+        .dh-readable-security .text-sm{font-size:1.06rem;line-height:1.85rem}
+        .dh-readable-security .dh-actor-grid .code-line{font-size:1rem;line-height:1.72}
+        .dh-readable-security .dh-flow-line{min-height:4rem;color:rgba(255,255,255,.7);font-size:1.08rem}
+        .dh-readable-security .dh-signature-panel .text-lg,.dh-readable-security .dh-result-card .text-lg{font-size:1.4rem;line-height:1.9rem}
+        .dh-readable-security .dh-verdict-chip{font-size:.86rem;line-height:1.25;padding:.72rem 1rem}
+        .dh-readable-security .dh-message-editor textarea{font-size:1.06rem;line-height:1.8}
+        .dh-readable-security .dh-message-editor .field-label>span{color:rgba(255,255,255,.72);font-size:.9rem}
+        .dh-readable-security .dh-demo-console p.text-sm,.dh-readable-security .dh-signature-panel p.text-sm,.dh-readable-security .dh-result-card p.text-sm{color:rgba(255,255,255,.7)}
+        .dh-readable-security .dh-event-log,.dh-readable-security .dh-message-trace{padding:1.35rem}
+        .dh-readable-security .dh-event-log>div{color:rgba(255,255,255,.88);font-size:1.08rem;line-height:1.75rem}
+        .dh-readable-security .dh-event-log li{grid-template-columns:2.2rem minmax(0,1fr);gap:.85rem;color:rgba(255,255,255,.76);font-size:1.08rem;line-height:1.85}
+        .dh-readable-security .dh-event-log li.is-empty{color:rgba(255,255,255,.58)}
+        .dh-readable-security .dh-event-log li+li{margin-top:.85rem}
+        .dh-readable-security .dh-event-log li>span{width:1.9rem;height:1.9rem;font-size:.86rem}
+        .dh-readable-security .dh-message-trace{gap:.9rem}
+        .dh-readable-security .dh-message-trace>div{padding:1rem 1.1rem}
+        .dh-readable-security .dh-message-trace>div>span{color:rgba(255,255,255,.62);font-size:.86rem;line-height:1.55}
+        .dh-readable-security .dh-message-trace>div>code{margin-top:.65rem;color:rgba(255,255,255,.76);font-size:1rem;line-height:1.78}
         .dh-normal-step{border:1px solid rgba(255,255,255,.1);background:rgba(8,18,29,.34);transition:.25s ease}
         .dh-normal-step.is-current{border-color:rgba(184,255,226,.62);background:rgba(105,211,180,.13);box-shadow:0 0 24px rgba(86,217,178,.1)}
         .dh-normal-step.is-done{border-color:rgba(184,255,226,.25);color:rgba(221,255,243,.86)}

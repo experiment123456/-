@@ -6346,10 +6346,44 @@ button:disabled {
   to { opacity: 0; transform: scale(1.035); }
 }
 
-.welcome-abyss-canvas {
+.welcome-base {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: radial-gradient(120% 120% at 50% 0%, #043047 0%, #021428 62%, #010c18 100%);
+}
+/* v3：与 Ocean 仪表盘区分——更深夜蓝调 + 青蓝罩染 */
+.welcome-media {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.9;
+  filter: saturate(1.05) brightness(0.72) contrast(1.12) hue-rotate(-8deg);
+}
+.welcome-wash {
   position: absolute;
   inset: 0;
   z-index: 1;
+  background: linear-gradient(180deg, rgba(8, 60, 92, 0.3), rgba(4, 30, 56, 0.1) 45%, rgba(1, 10, 24, 0.28));
+}
+.welcome-jelly {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.58;
+  mix-blend-mode: screen;
+  filter: saturate(0.78) hue-rotate(5deg) brightness(1.04) contrast(1.08);
+}
+.welcome-abyss-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
   width: 100%;
   height: 100%;
 }
@@ -6357,7 +6391,7 @@ button:disabled {
 .welcome-content {
   position: absolute;
   inset: 0;
-  z-index: 3;
+  z-index: 4;
   display: flex;
   flex-direction: column;
   align-items: center;

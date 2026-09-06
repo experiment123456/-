@@ -176,3 +176,26 @@ v2 的画布背景观感不佳，用户要求恢复 v1 的水母视频背景并�
 ### 验证（v3）
 
 画布存在且在动、`<video>` 数量为 2、标题/时长/交互/reduced-motion/其他页刷新同 v2 清单。
+
+---
+
+## v4 改版（2026-09-06，已确认）
+
+用户提供 "Synthetic Nature" 设计稿，确认**只替换背景视频源**，其余一切不动。
+
+| 决策点 | 结论 |
+|---|---|
+| 背景视频 | 移除 `dark-curtain-loop.mp4` + `aurex-jellyfish-overlay.mp4` 双层，改为单层外链视频：`https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260619_191346_9d19d66e-86a4-47f7-8dc6-712c1788c3b2.mp4`（autoPlay muted loop playsInline，object-cover） |
+| 不变 | 深蓝底色渐变（视频加载失败兜底）、青蓝 wash、滤镜、气泡 + 拖尾画布、中文主标题、6 秒定时、点击/键盘退出 |
+| poster | 移除（无对应本地海报，底色渐变承担加载兜底） |
+
+### 文件清单（v4）
+
+| 文件 | 改动 |
+|---|---|
+| `src/components/WelcomeScreen.tsx` | 删水母视频层，暗幕层改为新外链视频 |
+| `src/index.css` | 删除 `.welcome-jelly` 规则 |
+
+### 验证（v4）
+
+新视频可播放（readyState ≥ 2）、`<video>` 数量为 1、画布在动、标题/时长/交互同 v3 清单。

@@ -12,6 +12,7 @@ import InnovationView from "./views/InnovationView";
 import ImageLabView from "./views/ImageLabView";
 import OceanDashboard from "./views/OceanDashboard";
 import AgentExperience, { type AgentNavigateTarget } from "./components/AgentExperience";
+import WelcomeScreen from "./components/WelcomeScreen";
 
 type LabView = "workbench" | "dh" | "network" | "catalog" | "innovation";
 type ModuleView = "image-lab" | "ocean";
@@ -46,6 +47,7 @@ function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [user, setUser] = useState<AccountUser | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(true);
   const [loginVideoNeedsAction, setLoginVideoNeedsAction] = useState(true);
   const [loginVideoMuted, setLoginVideoMuted] = useState(true);
   const [loginVideoPlaying, setLoginVideoPlaying] = useState(false);
@@ -480,6 +482,8 @@ function App() {
         userName={user?.displayName}
         onNavigate={(target: AgentNavigateTarget) => navigate(target)}
       />
+
+      {showWelcome && <WelcomeScreen onDismiss={() => setShowWelcome(false)} />}
 
       <div className={`fixed inset-0 z-50 md:hidden ${menuOpen ? "pointer-events-auto" : "pointer-events-none"}`} aria-hidden={!menuOpen} data-ripple-block>
         <div className={`absolute inset-0 bg-[#101516]/45 backdrop-blur-lg transition-opacity duration-500 ${menuOpen ? "opacity-100" : "opacity-0"}`} />

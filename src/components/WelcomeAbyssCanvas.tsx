@@ -66,30 +66,9 @@ export default function WelcomeAbyssCanvas() {
       if (trail.length > TRAIL_MAX_POINTS) trail = trail.slice(-TRAIL_MAX_POINTS);
     };
 
-    // 光柱：自顶部斜射，lighter 混合，角度与强度随 sin 缓慢摆动
-    const drawBeam = (time: number, baseX: number, baseAngle: number, phase: number, beamWidth: number) => {
-      const angle = baseAngle + Math.sin(time * 0.00025 + phase) * 0.055;
-      const strength = 0.1 + Math.sin(time * 0.0004 + phase * 1.7) * 0.045;
-      context.save();
-      context.translate(width * baseX, -height * 0.08);
-      context.rotate(angle);
-      const gradient = context.createLinearGradient(0, 0, 0, height * 1.25);
-      gradient.addColorStop(0, `rgba(140, 214, 255, ${strength})`);
-      gradient.addColorStop(0.55, `rgba(120, 200, 255, ${strength * 0.42})`);
-      gradient.addColorStop(1, "rgba(120, 200, 255, 0)");
-      context.fillStyle = gradient;
-      context.fillRect((-beamWidth * width) / 2, 0, beamWidth * width, height * 1.25);
-      context.restore();
-    };
-
     const drawScene = (time: number, dt: number) => {
       context.clearRect(0, 0, width, height);
       context.globalCompositeOperation = "lighter";
-
-      drawBeam(time, 0.24, 0.2, 0, 0.085);
-      drawBeam(time, 0.46, 0.08, 2.1, 0.12);
-      drawBeam(time, 0.66, -0.1, 4.2, 0.07);
-      drawBeam(time, 0.84, -0.22, 5.6, 0.1);
 
       // 气泡：上浮 + 左右轻摆 + 鼠标径向推开
       bubbles.forEach((bubble) => {

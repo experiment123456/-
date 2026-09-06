@@ -145,3 +145,34 @@ Lumora · Cipher Laboratory    ← eyebrow（合并原品牌行）
 ### 验证（v2 增补）
 
 在原验证清单基础上：画布元素存在且页面无 `<video>`、主标题文本正确、自动进入时长约 6s、reduced-motion 下无拖尾无动画但静态画面正常。
+
+---
+
+## v3 改版（2026-09-06，已确认）
+
+v2 的画布背景观感不佳，用户要求恢复 v1 的水母视频背景并稍作变化，其余 v2 内容（6 秒、中文主标题、拖尾交互）全部保留。
+
+### 已确认决策
+
+| 决策点 | 结论 |
+|---|---|
+| 背景 | 恢复 `dark-curtain-loop.mp4` + `aurex-jellyfish-overlay.mp4` 双视频（v1 结构） |
+| 画布 | 保留气泡 + 鼠标拖尾叠在视频上方；**光柱移除**（叠视频会显乱） |
+| 与 Ocean 仪表盘的区分 | ① 暗幕视频改用更深夜蓝滤镜（`hue-rotate(-8deg) brightness(0.72) contrast(1.12)`）② 新增青蓝 wash 罩染层 ③ 气泡 + 拖尾动态叠层 |
+| 不变 | 中文主标题、6 秒定时、点击/键盘退出、reduced-motion 行为 |
+
+### 分层结构（自下而上）
+
+底色渐变 → `welcome-media`（暗幕视频，v3 滤镜）→ `welcome-wash`（青蓝罩染，新增）→ `welcome-jelly`（水母视频，v1 参数）→ 画布（气泡+拖尾）→ 文字层。
+
+### 文件清单（v3）
+
+| 文件 | 改动 |
+|---|---|
+| `src/components/WelcomeScreen.tsx` | 加回双视频层 + wash，画布移到视频上方 |
+| `src/components/WelcomeAbyssCanvas.tsx` | 删除光柱绘制 |
+| `src/index.css` | 恢复并调整视频层样式、新增 wash、画布/文字层 z-index 调整 |
+
+### 验证（v3）
+
+画布存在且在动、`<video>` 数量为 2、标题/时长/交互/reduced-motion/其他页刷新同 v2 清单。

@@ -6431,7 +6431,7 @@ button:disabled {
   border-radius: 999px;
   background: linear-gradient(90deg, rgba(56, 189, 248, 0.9), rgba(125, 211, 252, 0.35));
   transform-origin: left center;
-  /* 6s 无延迟：与组件内 6 秒定时器同步走完 */
+  /* 时长由组件内联 animationDuration 驱动，与视频时长同步；此处 6s 仅为兜底占位 */
   animation: welcome-progress 6s linear both;
 }
 

@@ -3,6 +3,7 @@ import WelcomeAbyssCanvas from "./WelcomeAbyssCanvas";
 
 export default function WelcomeScreen({ onDismiss }: { onDismiss: () => void }) {
   const [isLeaving, setIsLeaving] = useState(false);
+  const [stayMs, setStayMs] = useState(6000);
   const leavingRef = useRef(false);
 
   const dismiss = useCallback(() => {
@@ -12,9 +13,9 @@ export default function WelcomeScreen({ onDismiss }: { onDismiss: () => void }) 
   }, []);
 
   useEffect(() => {
-    const timer = window.setTimeout(dismiss, 6000);
+    const timer = window.setTimeout(dismiss, stayMs);
     return () => window.clearTimeout(timer);
-  }, [dismiss]);
+  }, [dismiss, stayMs]);
 
   useEffect(() => {
     if (isLeaving) return;
@@ -45,6 +46,13 @@ export default function WelcomeScreen({ onDismiss }: { onDismiss: () => void }) 
         loop
         playsInline
         src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260619_191346_9d19d66e-86a4-47f7-8dc6-712c1788c3b2.mp4"
+        onLoadedMetadata={(event) => {
+          // 停留时长与视频实际时长同步（6s 兜底 / 20s 上限），保证视频播完整
+          const duration = event.currentTarget.duration;
+          if (Number.isFinite(duration) && duration > 0) {
+            setStayMs(Math.min(Math.round(duration * 1000), 20000));
+          }
+        }}
         aria-hidden="true"
       />
       <div className="welcome-wash" aria-hidden="true" />
@@ -54,7 +62,7 @@ export default function WelcomeScreen({ onDismiss }: { onDismiss: () => void }) 
         <h1 className="welcome-title">欢迎进入密码实验室</h1>
         <p className="welcome-tagline">在深海噪声之外，<i>守住每一段密钥。</i></p>
         <p className="welcome-hint">点击任意位置进入</p>
-        <span className="welcome-progress" aria-hidden="true" />
+        <span className="welcome-progress" style={{ animationDuration: `${stayMs}ms` }} aria-hidden="true" />
       </div>
     </div>
   );

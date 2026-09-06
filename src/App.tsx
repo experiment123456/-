@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
-import { ArrowLeft, ArrowRight, BookOpen, Braces, CircleUserRound, KeyRound, LogIn, Menu, Network, Play, Sparkles, Volume2, VolumeX, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Braces, CircleUserRound, Compass, KeyRound, LogIn, Menu, Network, Play, Sparkles, Volume2, VolumeX, X } from "lucide-react";
 import { apiRequest, type AccountUser } from "./auth";
 import BackgroundRipples from "./components/BackgroundRipples";
 import CatalogView from "./views/CatalogView";
@@ -29,12 +29,12 @@ const videos = [
   { label: "Quiet Dawn", src: "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260702_080959_4cac5234-3573-464e-a5b7-76b94b8a7d61.mp4" },
 ];
 
-const navigation: Array<{ view: LabView; label: string; icon: typeof Braces }> = [
-  { view: "workbench", label: "单机实验", icon: Braces },
-  { view: "dh", label: "DH 交换", icon: KeyRound },
-  { view: "network", label: "双机通信", icon: Network },
-  { view: "catalog", label: "算法档案", icon: BookOpen },
-  { view: "innovation", label: "AI 创新", icon: Sparkles },
+const navigation: Array<{ view: LabView; label: string; caption: string; icon: typeof Braces }> = [
+  { view: "catalog", label: "项目导航", caption: "全部功能入口", icon: Compass },
+  { view: "workbench", label: "单机实验", caption: "8 项完整算法", icon: Braces },
+  { view: "dh", label: "DH 交换", caption: "MODP 2048-bit", icon: KeyRound },
+  { view: "network", label: "双机通信", caption: "消息与文件传输", icon: Network },
+  { view: "innovation", label: "AI 创新", caption: "动态海洋概念", icon: Sparkles },
 ];
 
 const uiFont: CSSProperties = { fontFamily: "system-ui, sans-serif" };
@@ -508,8 +508,7 @@ function App() {
               <div className="flex max-w-full flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[10px] text-white/70 sm:text-xs lg:gap-x-6 lg:text-sm">
                 {navigation.map((item, index) => {
                   const Icon = item.icon;
-                  const captions = ["8 项完整算法", "MODP 2048-bit", "消息与文件传输", "实现原理与索引", "动态海洋概念"];
-                  return <div className="flex items-center gap-x-3 lg:gap-x-6" key={item.view}>{index > 0 && <span className="hidden text-white/30 sm:inline">|</span>}<button className="footer-entry group flex items-center gap-2" type="button" onClick={() => navigate(item.view)}><Icon className="h-3.5 w-3.5 opacity-60" /><span><b className="font-medium">{item.label}</b><small className="ml-1.5 opacity-55">{captions[index]}</small></span></button></div>;
+                  return <div className="flex items-center gap-x-3 lg:gap-x-6" key={item.view}>{index > 0 && <span className="hidden text-white/30 sm:inline">|</span>}<button className="footer-entry group flex items-center gap-2" type="button" onClick={() => navigate(item.view)}><Icon className="h-3.5 w-3.5 opacity-60" /><span><b className="font-medium">{item.label}</b><small className="ml-1.5 opacity-55">{item.caption}</small></span></button></div>;
                 })}
               </div>
             </footer>

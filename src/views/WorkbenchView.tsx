@@ -22,8 +22,18 @@ const samples: Record<AlgorithmId, string> = {
   md5: "hello",
 };
 
+function initialAlgorithm(): AlgorithmId {
+  try {
+    const stored = sessionStorage.getItem("lumora-workbench-algorithm") as AlgorithmId | null;
+    if (stored && algorithms.some((item) => item.id === stored)) return stored;
+  } catch {
+    /* sessionStorage 不可用时使用默认算法 */
+  }
+  return "aes";
+}
+
 export default function WorkbenchView() {
-  const [algorithm, setAlgorithm] = useState<AlgorithmId>("aes");
+  const [algorithm, setAlgorithm] = useState<AlgorithmId>(initialAlgorithm);
   const [mode, setMode] = useState<CipherMode>("encrypt");
   const [input, setInput] = useState(samples.aes);
   const [output, setOutput] = useState("");
@@ -35,6 +45,10 @@ export default function WorkbenchView() {
   const fileRef = useRef<HTMLInputElement>(null);
   const runRef = useRef(0);
   const selected = useMemo(() => algorithms.find((item) => item.id === algorithm)!, [algorithm]);
+
+  useEffect(() => {
+    try { sessionStorage.removeItem("lumora-workbench-algorithm"); } catch { /* 无需处理 */ }
+  }, []);
 
   useEffect(() => {
     runRef.current += 1;

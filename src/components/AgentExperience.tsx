@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
 import PetCat from "./PetCat";
 import {
   ArrowLeft,
@@ -51,7 +51,7 @@ type AgentExperienceProps = {
   onNavigate: (target: AgentNavigateTarget) => void;
 };
 
-const quickPrompts = ["带我演示 AES", "讲解 DH 密钥交换", "如何使用双机通信", "查看全部算法"];
+const quickPrompts = ["带我演示 AES", "讲解 DH 密钥交换", "如何使用双机通信", "打开项目导航"];
 const navigationTargets = new Set<AgentNavigateTarget>(["home", "workbench", "dh", "network", "catalog", "innovation", "image-lab", "ocean", "agent"]);
 const safeActivations = new Set([
   "workbench.algorithm.aes", "workbench.sample", "workbench.generate-key", "workbench.run",
@@ -68,6 +68,7 @@ const dockStorageKey = "lumora-agent-dock-layout-v1";
 const orbStorageKey = "lumora-agent-orb-position-v1";
 const orbSize = 58;
 const maxToolSteps = 20;
+const showcaseExitDuration = 450;
 
 function clampDockRect(rect: DockRect): DockRect {
   const margin = 10;
@@ -159,11 +160,13 @@ async function waitForAgentState(target: string, state: string, timeout = 8_000)
 export default function AgentExperience({ mode, userId, userName, onNavigate }: AgentExperienceProps) {
   const [activated, setActivated] = useState(false);
   const [minimized, setMinimized] = useState(false);
+  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const [model, setModel] = useState("检测中");
   const [configured, setConfigured] = useState<boolean | null>(null);
   const [usingAgent, setUsingAgent] = useState(false);
+  const [showcaseLeaving, setShowcaseLeaving] = useState(false);
   const [sourceAtEnd, setSourceAtEnd] = useState(false);
   const [petVisible, setPetVisible] = useState(() => {
     try { return sessionStorage.getItem("lumora-pet-dismissed") !== "true"; } catch { return true; }
@@ -179,7 +182,7 @@ export default function AgentExperience({ mode, userId, userName, onNavigate }: 
   const [dockRect, setDockRect] = useState<DockRect>(initialDockRect);
   const [orbPosition, setOrbPosition] = useState<OrbPosition>(initialOrbPosition);
   const [messages, setMessages] = useState<DisplayMessage[]>([
-    { id: "welcome", role: "assistant", content: "你好，我是 Lumora AI 密码学导师。你可以直接提问，也可以让我带你操作 AES、DH、双机通信和算法档案。" },
+    { id: "welcome", role: "assistant", content: "你好，我是 Lumora AI 密码学导师。你可以直接提问，也可以让我带你操作 AES、DH、双机通信和项目导航。" },
   ]);
   const protocolRef = useRef<ProtocolMessage[]>([]);
   const requestRef = useRef(0);
@@ -188,11 +191,25 @@ export default function AgentExperience({ mode, userId, userName, onNavigate }: 
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const logRef = useRef<HTMLDivElement | null>(null);
   const sourceFrameRef = useRef<HTMLIFrameElement | null>(null);
+  const showcaseExitRef = useRef<number | null>(null);
   const dockRef = useRef<HTMLElement | null>(null);
   const orbDraggedRef = useRef(false);
   const activeConversationRef = useRef<string | null>(null);
   const activeConversationTitleRef = useRef("新对话");
   const accountRef = useRef(userId);
+
+  const enterAgentWorkspace = useCallback(() => {
+    if (usingAgent || showcaseLeaving || showcaseExitRef.current !== null) return;
+    setActivated(true);
+    setShowcaseLeaving(true);
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      || document.getElementById("app-scene")?.classList.contains("motion-reduced");
+    showcaseExitRef.current = window.setTimeout(() => {
+      setUsingAgent(true);
+      setShowcaseLeaving(false);
+      showcaseExitRef.current = null;
+    }, reduceMotion ? 0 : showcaseExitDuration);
+  }, [showcaseLeaving, usingAgent]);
 
   const refreshConversationHistory = async () => {
     const response = await fetch("/api/agent/conversations", { credentials: "same-origin" });
@@ -240,13 +257,26 @@ export default function AgentExperience({ mode, userId, userName, onNavigate }: 
   }, [mode]);
 
   useEffect(() => {
+    if (!closeConfirmOpen) return;
+    const cancelClose = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setCloseConfirmOpen(false);
+    };
+    window.addEventListener("keydown", cancelClose);
+    return () => window.removeEventListener("keydown", cancelClose);
+  }, [closeConfirmOpen]);
+
+  useEffect(() => {
     const receiveFrameAction = (event: MessageEvent) => {
       if (event.source !== sourceFrameRef.current?.contentWindow) return;
-      if (event.data?.type === "lumora:open-agent") setUsingAgent(true);
+      if (event.data?.type === "lumora:open-agent") enterAgentWorkspace();
       if (event.data?.type === "lumora:source-end") setSourceAtEnd(Boolean(event.data.atEnd));
     };
     window.addEventListener("message", receiveFrameAction);
     return () => window.removeEventListener("message", receiveFrameAction);
+  }, [enterAgentWorkspace]);
+
+  useEffect(() => () => {
+    if (showcaseExitRef.current !== null) window.clearTimeout(showcaseExitRef.current);
   }, []);
 
   useEffect(() => {
@@ -425,8 +455,8 @@ export default function AgentExperience({ mode, userId, userName, onNavigate }: 
       return "双机通信教学引导已完成：已依次说明中继地址、房间码和连接入口。真实端到端连接需要第二台设备使用相同中继与房间码，并选择相反角色";
     }
     await navigateAndWait("catalog", "catalog.grid");
-    await showGuide("catalog.grid", "这里集中展示 Lumora 支持的密码与摘要算法。", 3_200);
-    return "已打开算法档案并高亮算法卡片列表";
+    await showGuide("catalog.grid", "这里集中展示 Lumora 的主要功能模块，点击卡片即可进入。", 3_200);
+    return "已打开项目导航并高亮功能卡片列表";
   };
 
   const executeTool = async (call: ToolCall) => {
@@ -759,10 +789,36 @@ export default function AgentExperience({ mode, userId, userName, onNavigate }: 
             type="button"
             style={{ left: orbPosition.x + 45, top: orbPosition.y - 7 }}
             onPointerDown={(event) => event.stopPropagation()}
-            onClick={() => { setActivated(false); setMinimized(false); }}
+            onClick={() => setCloseConfirmOpen(true)}
             aria-label="关闭 AI 悬浮窗"
             title="关闭 AI 悬浮窗"
           ><X /></button>
+          {closeConfirmOpen && (
+            <div
+              className="agent-close-confirm-backdrop"
+              onMouseDown={(event) => {
+                if (event.target === event.currentTarget) setCloseConfirmOpen(false);
+              }}
+            >
+              <section className="agent-close-confirm" role="dialog" aria-modal="true" aria-labelledby="agent-close-confirm-title">
+                <span className="agent-close-confirm-icon" aria-hidden="true"><Bot /></span>
+                <h2 id="agent-close-confirm-title">你确定要彻底关闭 Agent 助手吗？</h2>
+                <p>关闭后悬浮球将从当前页面消失，你仍可从 AI 创新入口重新打开。</p>
+                <div>
+                  <button type="button" onClick={() => setCloseConfirmOpen(false)} autoFocus>取消</button>
+                  <button
+                    className="is-confirm"
+                    type="button"
+                    onClick={() => {
+                      setCloseConfirmOpen(false);
+                      setActivated(false);
+                      setMinimized(false);
+                    }}
+                  >确认关闭</button>
+                </div>
+              </section>
+            </div>
+          )}
         </>
       );
     }
@@ -787,7 +843,7 @@ export default function AgentExperience({ mode, userId, userName, onNavigate }: 
 
   if (!usingAgent) {
     return (
-      <div className="agent-showcase-page" data-ripple-block>
+      <div className={`agent-showcase-page ${showcaseLeaving ? "is-leaving" : ""}`} data-ripple-block>
         <iframe
           ref={sourceFrameRef}
           className="agent-showcase-frame"
@@ -804,7 +860,7 @@ export default function AgentExperience({ mode, userId, userName, onNavigate }: 
         </header>
         {!sourceAtEnd && <div className="agent-showcase-hint" aria-hidden="true"><span>SCROLL TO EXPLORE</span><i /></div>}
         {sourceAtEnd && (
-          <button className="agent-showcase-bottom-entry" type="button" aria-label="进入 Agent 对话" onClick={() => { setActivated(true); setUsingAgent(true); }}>
+          <button className="agent-showcase-bottom-entry" type="button" aria-label="进入 Agent 对话" onClick={enterAgentWorkspace} disabled={showcaseLeaving}>
             <Bot /><span>进入 Agent 对话</span><small>LUMORA 智能导师 / 互动展厅</small>
           </button>
         )}

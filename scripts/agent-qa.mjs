@@ -35,7 +35,7 @@ try {
   browser = await chromium.launch({ ...browserLocation(), headless: true });
   const guestPage = await browser.newPage({ viewport: { width: 1440, height: 960 } });
   await guestPage.goto(`${base}#innovation`, { waitUntil: "domcontentloaded" });
-  await guestPage.getByRole("heading", { name: "AI 智能导师" }).waitFor();
+  await guestPage.getByRole("heading", { name: /让好奇心/ }).waitFor();
   await guestPage.getByRole("button", { name: "进入 AI 导师", exact: true }).click({ force: true });
   await guestPage.locator(".agent-showcase-frame").waitFor();
   results.guestAgentNoLogin = guestPage.url().endsWith("#agent")
@@ -54,6 +54,11 @@ try {
   });
   page.setDefaultTimeout(15_000);
   await page.goto(base, { waitUntil: "domcontentloaded" });
+  const welcome = page.getByRole("dialog", { name: "欢迎来到 Lumora" });
+  if (await welcome.isVisible()) {
+    await page.getByRole("button", { name: "立即进入" }).click();
+    await welcome.waitFor({ state: "detached" });
+  }
   await page.getByRole("tab", { name: "注册" }).click();
   await page.getByPlaceholder("你希望显示的名字").fill("Agent 测试员");
   await page.getByPlaceholder("3–24 位中文、字母或数字").fill("agent_tester");
@@ -63,7 +68,7 @@ try {
   await page.getByRole("button", { name: "打开账户中心" }).waitFor();
 
   await page.getByRole("button", { name: "AI 创新", exact: true }).click();
-  await page.getByRole("heading", { name: "AI 智能导师" }).waitFor();
+  await page.getByRole("heading", { name: /让好奇心/ }).waitFor();
   results.innovationEntry = page.url().endsWith("#innovation");
   await page.getByRole("button", { name: "进入 AI 导师", exact: true }).click({ force: true });
   await page.locator(".agent-showcase-frame").waitFor();
@@ -197,6 +202,12 @@ try {
   results.mobileOrbClose = await page.getByRole("button", { name: "关闭 AI 悬浮窗" }).isVisible();
   results.noOverflow = await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth);
   await page.getByRole("button", { name: "关闭 AI 悬浮窗" }).click();
+  const closeDialog = page.getByRole("dialog", { name: "你确定要彻底关闭 Agent 助手吗？" });
+  results.mobileCloseConfirmation = await closeDialog.isVisible();
+  await page.getByRole("button", { name: "取消" }).click();
+  results.mobileCloseCancelled = await page.locator(".agent-dock-orb").isVisible();
+  await page.getByRole("button", { name: "关闭 AI 悬浮窗" }).click();
+  await page.getByRole("button", { name: "确认关闭" }).click();
   results.mobileOrbClosed = await page.locator(".agent-dock-orb").count() === 0;
   results.noRuntimeErrors = errors.length === 0;
   assert.equal(Object.values(results).every(Boolean), true, JSON.stringify({ results, errors, sourceErrors }, null, 2));

@@ -15,7 +15,21 @@ type JellyAgent = {
   size: number;
   cruise: number;
   alert: number;
+  gather: number;
 };
+
+type Attraction = {
+  x: number;
+  y: number;
+  started: number;
+  until: number;
+};
+
+function isInterfaceElement(target: EventTarget | null) {
+  return target instanceof Element && Boolean(target.closest(
+    "[data-ripple-block], button, a, input, textarea, select, option, label, [role='button']",
+  ));
+}
 
 const jellySpecs = [
   { size: 86, opacity: 0.82, delay: -1.7 },
@@ -77,6 +91,7 @@ export default function JellyfishField() {
   const fieldRef = useRef<HTMLDivElement | null>(null);
   const agentsRef = useRef<JellyAgent[]>([]);
   const pointerRef = useRef({ x: -10_000, y: -10_000 });
+  const attractionRef = useRef<Attraction>({ x: -10_000, y: -10_000, started: 0, until: 0 });
   const frameRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -97,12 +112,13 @@ export default function JellyfishField() {
         return {
           x: Math.max(8, Math.min(width - spec.size - 8, width * column + (index % 2 ? 24 : -30))),
           y: Math.max(lowerBand, Math.min(height - spec.size * 1.45, lowerBand + (index % 3) * 66 + index * 7)),
-          vx: Math.cos(angle) * (0.16 + index * 0.018),
-          vy: Math.sin(angle) * 0.1 - 0.025,
+          vx: Math.cos(angle) * (0.12 + index * 0.014),
+          vy: Math.sin(angle) * 0.075 - 0.018,
           phase: index * 1.41 + 0.35,
           size: spec.size,
-          cruise: 0.24 + index * 0.018,
+          cruise: 0.18 + index * 0.014,
           alert: 0,
+          gather: 0,
         };
       });
     };
@@ -112,6 +128,20 @@ export default function JellyfishField() {
       pointerRef.current.y = event.clientY - bounds.top;
     };
     const clearPointer = () => { pointerRef.current = { x: -10_000, y: -10_000 }; };
+    const gatherAtClick = (event: PointerEvent) => {
+      if (event.button !== 0 || isInterfaceElement(event.target)) return;
+      const page = field.closest(".reef-page");
+      if (!(event.target instanceof Node) || !page?.contains(event.target)) return;
+
+      bounds = field.getBoundingClientRect();
+      const now = performance.now();
+      attractionRef.current = {
+        x: Math.max(0, Math.min(bounds.width, event.clientX - bounds.left)),
+        y: Math.max(0, Math.min(bounds.height, event.clientY - bounds.top)),
+        started: now,
+        until: now + 2200,
+      };
+    };
 
     initialise();
     let previous = performance.now();
@@ -119,6 +149,11 @@ export default function JellyfishField() {
       const frameScale = Math.min(2.1, Math.max(0.35, (time - previous) / 16.667));
       const seconds = time / 1000;
       previous = time;
+      const attraction = attractionRef.current;
+      const attractionActive = time < attraction.until;
+      const attractionStrength = attractionActive
+        ? Math.min(1, (time - attraction.started) / 260, (attraction.until - time) / 380)
+        : 0;
 
       agentsRef.current.forEach((agent, index) => {
         const element = elements[index];
@@ -131,7 +166,20 @@ export default function JellyfishField() {
         const distance = Math.hypot(awayX, awayY);
         const dangerRadius = 138 + agent.size * 0.35;
 
-        if (distance < dangerRadius) {
+        if (attractionActive) {
+          agent.gather = Math.min(1, agent.gather + 0.075 * frameScale);
+          const clusterAngle = (index / jellySpecs.length) * Math.PI * 2 + agent.phase * 0.16;
+          const clusterRadius = 24 + agent.size * 0.24;
+          const targetX = attraction.x + Math.cos(clusterAngle) * clusterRadius;
+          const targetY = attraction.y + Math.sin(clusterAngle) * clusterRadius * 0.58;
+          const toX = targetX - centerX;
+          const toY = targetY - centerY;
+          const targetDistance = Math.hypot(toX, toY);
+          const pull = Math.min(0.38, 0.075 + targetDistance / 1500) * attractionStrength;
+          agent.vx += (toX / Math.max(targetDistance, 1)) * pull * frameScale;
+          agent.vy += (toY / Math.max(targetDistance, 1)) * pull * frameScale;
+          agent.alert = Math.min(1, agent.alert + 0.045 * frameScale);
+        } else if (distance < dangerRadius) {
           const force = (1 - distance / dangerRadius) * 0.92 + 0.12;
           const normalX = awayX / Math.max(distance, 1);
           const normalY = awayY / Math.max(distance, 1);
@@ -139,18 +187,20 @@ export default function JellyfishField() {
           agent.vy += normalY * force * frameScale;
           agent.alert = Math.min(1, agent.alert + 0.16 * frameScale);
         } else if (!reducedMotion) {
+          agent.gather *= Math.pow(0.955, frameScale);
           agent.alert *= Math.pow(0.955, frameScale);
-          agent.vx += Math.cos(seconds * 0.38 + agent.phase) * 0.0052 * frameScale;
-          agent.vy += (Math.sin(seconds * 0.31 + agent.phase) * 0.004 - 0.0008) * frameScale;
+          agent.vx += Math.cos(seconds * 0.32 + agent.phase) * 0.0039 * frameScale;
+          agent.vy += (Math.sin(seconds * 0.27 + agent.phase) * 0.003 - 0.0006) * frameScale;
         } else {
+          agent.gather *= Math.pow(0.88, frameScale);
           agent.alert *= Math.pow(0.9, frameScale);
         }
 
-        const damping = reducedMotion ? (agent.alert > 0.08 ? 0.965 : 0.82) : (agent.alert > 0.08 ? 0.988 : 0.972);
+        const damping = attractionActive ? 0.985 : reducedMotion ? (agent.alert > 0.08 ? 0.965 : 0.82) : (agent.alert > 0.08 ? 0.988 : 0.972);
         agent.vx *= Math.pow(damping, frameScale);
         agent.vy *= Math.pow(damping, frameScale);
 
-        const maxSpeed = reducedMotion ? agent.alert * 2.8 : agent.cruise + agent.alert * 4.7;
+        const maxSpeed = attractionActive ? 7.2 : reducedMotion ? agent.alert * 2.8 : agent.cruise + agent.alert * 4.7;
         const currentSpeed = Math.hypot(agent.vx, agent.vy);
         if (currentSpeed > maxSpeed) {
           agent.vx = (agent.vx / currentSpeed) * maxSpeed;
@@ -160,7 +210,8 @@ export default function JellyfishField() {
         agent.x += agent.vx * frameScale;
         agent.y += agent.vy * frameScale;
 
-        const minY = Math.max(bounds.height * 0.62, bounds.height - 360);
+        const restingMinY = Math.max(bounds.height * 0.62, bounds.height - 360);
+        const minY = restingMinY * (1 - agent.gather) + 12 * agent.gather;
         const maxX = Math.max(8, bounds.width - agent.size - 8);
         const maxY = Math.max(minY + 20, bounds.height - agent.size * 1.35 - 8);
         if (agent.x < 8) { agent.x = 8; agent.vx = Math.abs(agent.vx) * 0.72; }
@@ -179,6 +230,7 @@ export default function JellyfishField() {
     };
 
     window.addEventListener("pointermove", movePointer, { passive: true });
+    window.addEventListener("pointerdown", gatherAtClick, { passive: true });
     window.addEventListener("blur", clearPointer);
     document.documentElement.addEventListener("mouseleave", clearPointer);
     window.addEventListener("resize", initialise, { passive: true });
@@ -187,6 +239,7 @@ export default function JellyfishField() {
     return () => {
       if (frameRef.current) cancelAnimationFrame(frameRef.current);
       window.removeEventListener("pointermove", movePointer);
+      window.removeEventListener("pointerdown", gatherAtClick);
       window.removeEventListener("blur", clearPointer);
       document.documentElement.removeEventListener("mouseleave", clearPointer);
       window.removeEventListener("resize", initialise);

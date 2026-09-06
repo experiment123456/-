@@ -199,3 +199,26 @@ v2 的画布背景观感不佳，用户要求恢复 v1 的水母视频背景并�
 ### 验证（v4）
 
 新视频可播放（readyState ≥ 2）、`<video>` 数量为 1、画布在动、标题/时长/交互同 v3 清单。
+
+---
+
+## v5 改版（2026-09-06，已确认）
+
+用户反馈视频未播放完整（实测视频精确时长 8.04s，原定时 6s 提前退场）。
+
+| 决策点 | 结论 |
+|---|---|
+| 停留时长 | 不再硬编码：`onLoadedMetadata` 读取视频实际时长，`dismiss` 定时器 = `round(duration×1000)`，下限 6s（视频加载失败兜底）、上限 20s（防异常元数据） |
+| 进度条 | 动画时长经内联 `animationDuration` 与定时器同步，同样随视频时长变化 |
+| 不变 | 点击 / Enter / Escape 提前进入；reduced-motion 行为；其余一切 |
+
+### 文件清单（v5）
+
+| 文件 | 改动 |
+|---|---|
+| `src/components/WelcomeScreen.tsx` | `stayMs` state + `onLoadedMetadata` 同步，定时器与进度条改用 `stayMs` |
+| `src/index.css` | 进度条注释更新（时长由内联样式驱动） |
+
+### 验证（v5）
+
+欢迎页停留 ≈ 视频时长（~8s，大于 6s）、进度条 animationDuration 同步、点击提前进入仍生效。

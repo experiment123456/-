@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
-import { ArrowLeft, ArrowRight, BookOpen, Braces, CircleUserRound, KeyRound, LogIn, Menu, Network, Play, Sparkles, Volume2, VolumeX, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Braces, CircleUserRound, Compass, KeyRound, LogIn, Menu, Network, Play, Sparkles, Volume2, VolumeX, X } from "lucide-react";
 import { apiRequest, type AccountUser } from "./auth";
 import BackgroundRipples from "./components/BackgroundRipples";
 import CatalogView from "./views/CatalogView";
@@ -17,6 +17,10 @@ import WelcomeScreen from "./components/WelcomeScreen";
 type LabView = "workbench" | "dh" | "network" | "catalog" | "innovation";
 type ModuleView = "image-lab" | "ocean";
 type AppView = "home" | LabView | ModuleView | "agent" | "login" | "account";
+type InnovationTransitionPhase = "idle" | "covering" | "revealing";
+
+const INNOVATION_FADE_OUT = 450;
+const INNOVATION_FADE_IN = 500;
 
 const videos = [
   { label: "Golden Hour", src: "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260702_081127_0992a171-d3c6-4978-8213-0ec5df8b6d63.mp4" },
@@ -25,12 +29,12 @@ const videos = [
   { label: "Quiet Dawn", src: "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260702_080959_4cac5234-3573-464e-a5b7-76b94b8a7d61.mp4" },
 ];
 
-const navigation: Array<{ view: LabView; label: string; icon: typeof Braces }> = [
-  { view: "workbench", label: "单机实验", icon: Braces },
-  { view: "dh", label: "DH 交换", icon: KeyRound },
-  { view: "network", label: "双机通信", icon: Network },
-  { view: "catalog", label: "算法档案", icon: BookOpen },
-  { view: "innovation", label: "AI 创新", icon: Sparkles },
+const navigation: Array<{ view: LabView; label: string; caption: string; icon: typeof Braces }> = [
+  { view: "catalog", label: "项目导航", caption: "全部功能入口", icon: Compass },
+  { view: "workbench", label: "单机实验", caption: "8 项完整算法", icon: Braces },
+  { view: "dh", label: "DH 交换", caption: "MODP 2048-bit", icon: KeyRound },
+  { view: "network", label: "双机通信", caption: "消息与文件传输", icon: Network },
+  { view: "innovation", label: "AI 创新", caption: "动态海洋概念", icon: Sparkles },
 ];
 
 const uiFont: CSSProperties = { fontFamily: "system-ui, sans-serif" };
@@ -42,6 +46,7 @@ function viewFromHash(): AppView {
 
 function App() {
   const [view, setView] = useState<AppView>(() => viewFromHash());
+  const [innovationTransition, setInnovationTransition] = useState<InnovationTransitionPhase>("idle");
   const [activeVideo, setActiveVideo] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -57,6 +62,7 @@ function App() {
   const [homeMusicNeedsAction, setHomeMusicNeedsAction] = useState(false);
   const [homeMusicError, setHomeMusicError] = useState(false);
   const timerRef = useRef<number | null>(null);
+  const innovationTransitionRef = useRef<number | null>(null);
   const videoRefs = useRef<Array<HTMLVideoElement | null>>([]);
   const loginVideoRef = useRef<HTMLVideoElement | null>(null);
   const homeMusicRef = useRef<HTMLAudioElement | null>(null);
@@ -221,6 +227,12 @@ function App() {
 
   const navigate = (requested: AppView) => {
     const next = requested === "account" && !user ? "login" : requested;
+    if (innovationTransition === "covering") return;
+    if (innovationTransition === "revealing") {
+      if (innovationTransitionRef.current !== null) window.clearTimeout(innovationTransitionRef.current);
+      innovationTransitionRef.current = null;
+      setInnovationTransition("idle");
+    }
     mediaViewRef.current = next;
     if (next !== "login") {
       loginRequestRef.current += 1;
@@ -233,9 +245,25 @@ function App() {
       homeMusicRef.current?.pause();
     }
     setMenuOpen(false);
-    if (next === "home") history.pushState(null, "", `${location.pathname}${location.search}`);
-    else location.hash = next;
-    setView(next);
+    const commitNavigation = () => {
+      if (next === "home") history.pushState(null, "", `${location.pathname}${location.search}`);
+      else location.hash = next;
+      setView(next);
+    };
+    const reducePageMotion = settings.reducedMotion || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (next === "innovation" && view !== "innovation" && !reducePageMotion) {
+      setInnovationTransition("covering");
+      innovationTransitionRef.current = window.setTimeout(() => {
+        commitNavigation();
+        setInnovationTransition("revealing");
+        innovationTransitionRef.current = window.setTimeout(() => {
+          setInnovationTransition("idle");
+          innovationTransitionRef.current = null;
+        }, INNOVATION_FADE_IN);
+      }, INNOVATION_FADE_OUT);
+      return;
+    }
+    commitNavigation();
   };
 
   const switchVideo = (index: number) => {
@@ -275,7 +303,10 @@ function App() {
   };
 
   return (
-    <section id="app-scene" className={`relative h-[100svh] w-full overflow-hidden bg-black text-white ${settings.reducedMotion ? "motion-reduced" : ""}`}>
+    <section
+      id="app-scene"
+      className={`app-scene relative h-[100svh] w-full overflow-hidden bg-black text-white ${settings.reducedMotion ? "motion-reduced" : ""}`}
+    >
       {isInnovationSurface ? (
         <div className={`absolute inset-0 z-0 ${isAgentView ? "bg-[#060808]" : "bg-[#06404b]"}`} aria-hidden="true" />
       ) : isModuleView ? (
@@ -377,6 +408,7 @@ function App() {
             musicPlaying={homeMusicPlaying}
             musicNeedsAction={homeMusicNeedsAction}
             onToggleMusic={toggleHomeMusic}
+            ripplesEnabled={settings.ripplesEnabled && !settings.reducedMotion}
           />
         </div>
       ) : isModuleView ? (
@@ -385,7 +417,7 @@ function App() {
           {isOcean && <OceanDashboard onNavigate={navigate} />}
         </div>
       ) : isAgentView ? null : (
-      <div className="relative z-[3] flex h-full flex-col px-4 py-4 sm:px-7 sm:py-6 lg:px-10 lg:py-7 xl:px-14">
+      <div className="app-view-content relative z-[3] flex h-full flex-col px-4 py-4 sm:px-7 sm:py-6 lg:px-10 lg:py-7 xl:px-14">
         <nav className="flex shrink-0 items-center justify-between gap-3 text-white" aria-label="主导航" data-ripple-block>
           <button type="button" className="group flex items-center gap-3 text-left" onClick={() => navigate("home")} aria-label="返回首页">
             {view !== "home" && <span className="liquid-glass grid h-9 w-9 place-items-center rounded-full transition group-hover:-translate-x-0.5"><ArrowLeft className="h-4 w-4" /></span>}
@@ -456,8 +488,7 @@ function App() {
               <div className="flex max-w-full flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[10px] text-white/70 sm:text-xs lg:gap-x-6 lg:text-sm">
                 {navigation.map((item, index) => {
                   const Icon = item.icon;
-                  const captions = ["8 项完整算法", "MODP 2048-bit", "消息与文件传输", "实现原理与索引", "动态海洋概念"];
-                  return <div className="flex items-center gap-x-3 lg:gap-x-6" key={item.view}>{index > 0 && <span className="hidden text-white/30 sm:inline">|</span>}<button className="footer-entry group flex items-center gap-2" type="button" onClick={() => navigate(item.view)}><Icon className="h-3.5 w-3.5 opacity-60" /><span><b className="font-medium">{item.label}</b><small className="ml-1.5 opacity-55">{captions[index]}</small></span></button></div>;
+                  return <div className="flex items-center gap-x-3 lg:gap-x-6" key={item.view}>{index > 0 && <span className="hidden text-white/30 sm:inline">|</span>}<button className="footer-entry group flex items-center gap-2" type="button" onClick={() => navigate(item.view)}><Icon className="h-3.5 w-3.5 opacity-60" /><span><b className="font-medium">{item.label}</b><small className="ml-1.5 opacity-55">{item.caption}</small></span></button></div>;
                 })}
               </div>
             </footer>
@@ -484,6 +515,9 @@ function App() {
       />
 
       {showWelcome && <WelcomeScreen onDismiss={() => setShowWelcome(false)} />}
+      {innovationTransition !== "idle" && (
+        <div className={`innovation-route-transition is-${innovationTransition}`} aria-hidden="true" />
+      )}
 
       <div className={`fixed inset-0 z-50 md:hidden ${menuOpen ? "pointer-events-auto" : "pointer-events-none"}`} aria-hidden={!menuOpen} data-ripple-block>
         <div className={`absolute inset-0 bg-[#101516]/45 backdrop-blur-lg transition-opacity duration-500 ${menuOpen ? "opacity-100" : "opacity-0"}`} />

@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Bot, Image as ImageIcon, Play, ShieldCheck, Sparkles, Volume2, VolumeX, Waves } from "lucide-react";
+import BackgroundRipples from "../components/BackgroundRipples";
+import ImageLabPreviewDialog from "../components/ImageLabPreviewDialog";
 import JellyfishField from "../components/JellyfishField";
 import ReefBackground from "../components/ReefBackground";
-import ImageLabPreviewDialog from "../components/ImageLabPreviewDialog";
 import "./InnovationView.css";
 
 type InnovationTarget = "home" | "ocean" | "agent";
@@ -11,14 +12,29 @@ type InnovationViewProps = {
   musicPlaying: boolean;
   musicNeedsAction: boolean;
   onToggleMusic: () => void;
+  ripplesEnabled: boolean;
 };
 
-export default function InnovationView({ onNavigate, musicPlaying, musicNeedsAction, onToggleMusic }: InnovationViewProps) {
+export default function InnovationView({ onNavigate, musicPlaying, musicNeedsAction, onToggleMusic, ripplesEnabled }: InnovationViewProps) {
+  const [entering, setEntering] = useState<InnovationTarget | null>(null);
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
+  const entryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (entryTimer.current !== null) clearTimeout(entryTimer.current);
+  }, []);
+
+  const enter = (target: InnovationTarget) => {
+    if (entryTimer.current !== null) return;
+    setEntering(target);
+    // Leave a brief moment for the click colour to register before navigation.
+    entryTimer.current = setTimeout(() => onNavigate(target), 240);
+  };
 
   return (
     <div className="reef-page">
       <ReefBackground />
+      <BackgroundRipples active={ripplesEnabled} intensity={1.16} />
       <JellyfishField />
       <div className="reef-content">
         <header className="reef-header" data-ripple-block>
@@ -38,19 +54,36 @@ export default function InnovationView({ onNavigate, musicPlaying, musicNeedsAct
             <p className="reef-eyebrow">AI 智能导师 · 沉浸式密码学学习伙伴</p>
             <h1><span>让好奇心，潜入深海</span><span>让每一次探索，都有回响</span></h1>
             <p className="reef-intro">与 AI 智能导师同行，探索密码学的无限可能。<br />从一个问题出发，让未知慢慢清晰。</p>
-            <div className="reef-actions">
-              <button className="reef-action reef-action-primary" type="button" onClick={() => onNavigate("agent")}>
-                <span>进入 AI 导师</span><ArrowRight aria-hidden="true" />
-              </button>
-              <button
-                className="reef-action reef-action-secondary"
-                type="button"
-                onClick={() => setImagePreviewOpen(true)}
-                aria-haspopup="dialog"
-                aria-expanded={imagePreviewOpen}
-              >
-                <span>进入图片实验</span><ArrowRight aria-hidden="true" />
-              </button>
+            <div className={`reef-actions${entering ? " is-entering" : ""}`} data-ripple-block>
+              <div className="reef-action-group">
+                <button className={`reef-action reef-action-primary${entering === "agent" ? " is-entering" : ""}`} type="button"
+                  onClick={() => enter("agent")} aria-describedby="reef-agent-preview" aria-busy={entering === "agent"}>
+                  <span>进入 AI 导师</span><ArrowRight aria-hidden="true" />
+                </button>
+                <div className="reef-action-preview" id="reef-agent-preview" role="tooltip">
+                  <Bot aria-hidden="true" />
+                  <div><strong>与 AI 导师一起探索</strong><p>从深海旅程开启对话，解答疑问、学习密码学。</p></div>
+                  <span className="reef-preview-tag">智能问答</span>
+                </div>
+              </div>
+              <div className="reef-action-group">
+                <button
+                  className={`reef-action reef-action-secondary${entering === "ocean" ? " is-entering" : ""}`}
+                  type="button"
+                  onClick={() => setImagePreviewOpen(true)}
+                  aria-describedby="reef-image-preview"
+                  aria-haspopup="dialog"
+                  aria-expanded={imagePreviewOpen}
+                  aria-busy={entering === "ocean"}
+                >
+                  <span>进入图片实验</span><ArrowRight aria-hidden="true" />
+                </button>
+                <div className="reef-action-preview reef-action-preview-image" id="reef-image-preview" role="tooltip">
+                  <ImageIcon aria-hidden="true" />
+                  <div><strong>发现图像里的秘密</strong><p>探索数字水印、信息隐写与图像安全实验。</p></div>
+                  <span className="reef-preview-tag">图像安全</span>
+                </div>
+              </div>
             </div>
             <p className="reef-entry-note">跟随深海介绍向下探索，在旅程末端开启对话</p>
           </div>
@@ -62,7 +95,7 @@ export default function InnovationView({ onNavigate, musicPlaying, musicNeedsAct
             <div><ImageIcon aria-hidden="true" /><span>图像安全<small>IMAGE SECURITY</small></span></div>
             <div><Waves aria-hidden="true" /><span>沉浸式学习<small>IMMERSIVE LEARNING</small></span></div>
           </div>
-          <p className="reef-jelly-hint">移动鼠标靠近水母，观察它们的逃离反应</p>
+          <p className="reef-jelly-hint">移动鼠标观察水母逃离，点击海面召集它们</p>
         </footer>
       </div>
       <ImageLabPreviewDialog
@@ -70,7 +103,7 @@ export default function InnovationView({ onNavigate, musicPlaying, musicNeedsAct
         onClose={() => setImagePreviewOpen(false)}
         onEnter={() => {
           setImagePreviewOpen(false);
-          onNavigate("ocean");
+          enter("ocean");
         }}
       />
     </div>

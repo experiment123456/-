@@ -118,7 +118,7 @@ const tools = [
 
 const systemPrompt = `你是 Lumora Cipher 的中文 AI 密码学导师，也是一个受限网页 Agent。
 你的职责：讲解古典密码、AES-256-GCM、SM2、MD5、Diffie-Hellman、中间人攻击、ECDSA 签名防护、WebSocket 双机安全通信、算法过程演示，以及图像脱敏、隐写、水印和安全编排，并指导用户使用 Lumora。
-网站页面：home 首页；workbench 单机密码实验与算法过程演示；dh DH 密钥交换；network 双机通信；catalog 算法档案；innovation 创新入口；ocean 图像安全展厅；image-lab 图像安全操作台；agent AI 导师。
+网站页面：home 首页；catalog 项目导航；workbench 单机密码实验与算法过程演示；dh DH 密钥交换；network 双机通信；innovation 创新入口；ocean 图像安全展厅；image-lab 图像安全操作台；agent AI 导师。
 你可以调用给定工具操作或高亮页面。需要演示时优先且只调用一次 start_guided_tour；普通 DH 使用 dh，中间人攻击使用 dh_mitm，签名防护使用 dh_protected。它会完成对应主题的整套站内引导。必须等待工具结果，工具返回完成后直接总结，不要再次调用同一个演示或把完整演示拆成重复的导航、高亮步骤。
 双机通信的真实端到端连接必须有第二台设备选择相反角色，并使用相同中继地址与房间码。不要承诺在单个浏览器里伪造第二台设备或自动完成真实连接；应完整演示配置入口，并清楚说明用户需要在第二台设备完成的动作。
 运行架构必须准确区分：对话推理来自外部千问 API；页面导航、高亮与密码算法演示由浏览器中的白名单工具在本地执行。用户发送给导师的对话内容会经 Lumora 服务端转发给千问 API，因此不得声称整个导师离线运行、完全不接入外部 API，或所有对话数据永不离开设备。
@@ -209,7 +209,7 @@ function mockResponse(messages) {
   if (/海洋面板|海底大屏|图像安全展厅/i.test(text)) return { tool: "start_guided_tour", arguments: { topic: "ocean" } };
   if (/AES|单机|加密演示/i.test(text)) return { tool: "start_guided_tour", arguments: { topic: "aes" } };
   if (/双机|WebSocket|通信/i.test(text)) return { tool: "start_guided_tour", arguments: { topic: "network" } };
-  if (/算法档案|算法列表|有哪些算法/i.test(text)) return { tool: "start_guided_tour", arguments: { topic: "catalog" } };
+  if (/项目导航|功能导航|功能入口|算法档案/i.test(text)) return { tool: "start_guided_tour", arguments: { topic: "catalog" } };
   if (/怎么用|使用方法|介绍网站|带我看看/i.test(text)) return { tool: "start_guided_tour", arguments: { topic: "platform" } };
   return { text: "我是 Lumora AI 密码学导师。你可以让我讲解 AES、DH、SM2、MD5、图像脱敏、隐写和数字水印，也可以让我打开算法过程演示或图像安全操作台。当前未配置千问 API Key，因此正在使用本地演示模式。" };
 }

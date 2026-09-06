@@ -6369,17 +6369,6 @@ button:disabled {
   z-index: 1;
   background: linear-gradient(180deg, rgba(8, 60, 92, 0.3), rgba(4, 30, 56, 0.1) 45%, rgba(1, 10, 24, 0.28));
 }
-.welcome-jelly {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0.58;
-  mix-blend-mode: screen;
-  filter: saturate(0.78) hue-rotate(5deg) brightness(1.04) contrast(1.08);
-}
 .welcome-abyss-canvas {
   position: absolute;
   inset: 0;

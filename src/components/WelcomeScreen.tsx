@@ -44,20 +44,10 @@ export default function WelcomeScreen({ onDismiss }: { onDismiss: () => void }) 
         muted
         loop
         playsInline
-        poster="/assets/ocean/dark-curtain-poster.jpg"
-        src="/assets/ocean/dark-curtain-loop.mp4"
+        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260619_191346_9d19d66e-86a4-47f7-8dc6-712c1788c3b2.mp4"
         aria-hidden="true"
       />
       <div className="welcome-wash" aria-hidden="true" />
-      <video
-        className="welcome-jelly"
-        autoPlay
-        muted
-        loop
-        playsInline
-        src="/assets/ocean/aurex-jellyfish-overlay.mp4"
-        aria-hidden="true"
-      />
       <WelcomeAbyssCanvas />
       <div className="welcome-content">
         <p className="welcome-eyebrow">Lumora · Cipher Laboratory</p>

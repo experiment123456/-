@@ -887,7 +887,9 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
       tl.call(() => setTitleShown(true), undefined, "decrypt+=0.1")
         .fromTo(".wc-eyebrow", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.6 }, "decrypt+=0.35")
         .fromTo(".wc-tagline", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.6 }, "decrypt+=0.8")
-        .fromTo(".wc-hint", { opacity: 0 }, { opacity: 0.9, duration: 0.6 }, "decrypt+=1.2");
+        .fromTo(".wc-hint", { opacity: 0 }, { opacity: 0.9, duration: 0.6 }, "decrypt+=1.2")
+        // 呼吸交给 GSAP（CSS 动画会覆盖内联 opacity，导致提示提前出现）
+        .to(".wc-hint", { opacity: 0.55, duration: 1.2, ease: "sine.inOut", yoyo: true, repeat: -1 }, "decrypt+=1.8");
 
       // 进度条 = 时间轴进度
       tl.fromTo(".wc-progress", { scaleX: 0 }, { scaleX: 1, duration: PHASES.total, ease: "none" }, 0);
@@ -1101,7 +1103,6 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
   font-size: 12px;
   letter-spacing: 0.22em;
   color: rgba(255, 255, 255, 0.9);
-  animation: wc-breathe 2.4s ease-in-out 1.8s infinite;
 }
 .wc-progress {
   position: absolute;
@@ -1122,7 +1123,7 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
     animation-duration: 0.3s;
   }
   .wc-title { animation: none; }
-  .wc-hint { animation: none; color: rgba(255, 255, 255, 0.6); }
+  .wc-hint { color: rgba(255, 255, 255, 0.6); }
   .wc-progress { display: none; }
 }
 ```

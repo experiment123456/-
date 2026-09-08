@@ -799,6 +799,7 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
   const [titleShown, setTitleShown] = useState(false);
   const [plainTitle, setPlainTitle] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
+  const videoReadyRef = useRef(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const flashRef = useRef<HTMLDivElement>(null);
@@ -898,9 +899,9 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
         .call(() => dismiss(false), undefined, PHASES.total);
     }, root);
 
-    // 视频看门狗：4s 仍未就绪则永久移除（程序化背景无缝顶替）
+    // 视频看门狗：4s 仍未就绪则永久隐藏（程序化背景无缝顶替；ref 判定避免闭包过期值）
     const watchdog = window.setTimeout(() => {
-      if (!videoReady) videoRef.current?.remove();
+      if (!videoReadyRef.current && videoRef.current) videoRef.current.style.display = "none";
     }, 4000);
 
     return () => {
@@ -944,7 +945,7 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
         playsInline
         src={VIDEO_SRC}
         style={{ visibility: videoReady ? "visible" : "hidden" }}
-        onLoadedData={() => setVideoReady(true)}
+        onLoadedData={() => { videoReadyRef.current = true; setVideoReady(true); }}
         aria-hidden="true"
       />
       <canvas className="wc-canvas" aria-hidden="true" />
@@ -980,7 +981,7 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
 
 - [ ] **Step 3: 替换 `src/index.css` 的 welcome 样式块**
 
-删除从 `/* ============ Welcome screen ============ */` 注释起至文件末尾（含旧 `@media (prefers-reduced-motion: reduce)` 块，约 6410–6551 行），原位替换为：
+删除从 `/* ============ Welcome screen ============ */` 注释起、至 `/* ============ Welcome cinematic (wc-) collage ============ */` 注释**之前**的整段（含旧 `@media (prefers-reduced-motion: reduce)` 块；注意 Task 3 追加的拼贴块已在文件末尾，**不可删除**），并在原位插入下面的新样式块：
 
 ```css
 /* ============ Welcome cinematic (wc-) ============ */

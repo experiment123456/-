@@ -6407,63 +6407,78 @@ button:disabled {
   }
 }
 
-/* ============ Welcome screen ============ */
-.welcome-screen {
+/* ============ Welcome cinematic (wc-) ============ */
+.wc-root {
   position: fixed;
   inset: 0;
   z-index: 60;
   overflow: hidden;
   cursor: pointer;
-  background: #010c18;
-  animation: welcome-fade-in 0.7s ease both;
+  background: #010b16;
+  animation: wc-enter 0.6s ease both;
 }
-.welcome-screen.is-leaving {
-  animation: welcome-fade-out 0.6s ease both;
+.wc-root.is-leaving {
+  animation: wc-exit 0.45s ease both;
+  pointer-events: none;
 }
-@keyframes welcome-fade-in {
+@keyframes wc-enter {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-@keyframes welcome-fade-out {
-  from { opacity: 1; transform: scale(1); }
-  to { opacity: 0; transform: scale(1.035); }
+@keyframes wc-exit {
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
 
-.welcome-base {
+.wc-base {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: radial-gradient(120% 120% at 50% 0%, #043047 0%, #021428 62%, #010c18 100%);
+  background: radial-gradient(120% 120% at 50% 10%, #043047 0%, #021428 62%, #010b16 100%);
 }
-/* v3：与 Ocean 仪表盘区分——更深夜蓝调 + 青蓝罩染 */
-.welcome-media {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0.9;
-  filter: saturate(1.05) brightness(0.72) contrast(1.12) hue-rotate(-8deg);
-}
-.welcome-wash {
+.wc-video {
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: linear-gradient(180deg, rgba(8, 60, 92, 0.3), rgba(4, 30, 56, 0.1) 45%, rgba(1, 10, 24, 0.28));
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(1.05) brightness(0.72) contrast(1.12) hue-rotate(-8deg);
 }
-.welcome-abyss-canvas {
+.wc-canvas {
   position: absolute;
   inset: 0;
-  z-index: 3;
+  z-index: 2;
   width: 100%;
   height: 100%;
 }
-
-.welcome-content {
+.wc-wash {
   position: absolute;
   inset: 0;
-  z-index: 4;
+  z-index: 3;
+  background: linear-gradient(180deg, rgba(8, 60, 92, 0.22), rgba(4, 30, 56, 0.06) 45%, rgba(1, 10, 24, 0.3));
+  pointer-events: none;
+}
+.wc-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  opacity: 0;
+  background: radial-gradient(circle at 50% 46%, rgba(224, 250, 255, 0.95), rgba(125, 211, 252, 0.35) 42%, rgba(255, 202, 133, 0.12) 62%, rgba(2, 21, 42, 0) 80%);
+  pointer-events: none;
+}
+.wc-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  background: radial-gradient(120% 120% at 50% 50%, transparent 58%, rgba(1, 8, 18, 0.55) 100%);
+  pointer-events: none;
+}
+
+.wc-content {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -6471,16 +6486,18 @@ button:disabled {
   gap: 14px;
   text-align: center;
   padding: 0 24px;
+  pointer-events: none;
 }
-.welcome-eyebrow {
+.wc-fade { opacity: 0; }
+.wc-eyebrow {
   font-family: system-ui, sans-serif;
   font-size: 11px;
   letter-spacing: 0.32em;
   text-transform: uppercase;
-  color: rgba(186, 230, 253, 0.55);
-  animation: welcome-rise 0.9s ease 0.15s both;
+  color: rgba(186, 230, 253, 0.6);
 }
-.welcome-title {
+.wc-title {
+  min-height: 1.2em;
   font-family: system-ui, "PingFang SC", "Microsoft YaHei", sans-serif;
   font-size: clamp(2.4rem, 6.4vw, 4.6rem);
   font-weight: 600;
@@ -6488,66 +6505,48 @@ button:disabled {
   line-height: 1.18;
   text-shadow:
     0 0 26px rgba(56, 189, 248, 0.45),
-    0 0 90px rgba(56, 189, 248, 0.22);
-  animation: welcome-rise 0.9s ease 0.3s both;
+    0 0 90px rgba(192, 132, 252, 0.2);
+  animation: wc-title-track 1.4s ease-out both;
 }
-.welcome-tagline {
+@keyframes wc-title-track {
+  from { letter-spacing: 0.3em; }
+  to { letter-spacing: 0.08em; }
+}
+.wc-enc { color: rgba(192, 132, 252, 0.75); }
+.wc-tagline {
   font-size: clamp(0.95rem, 2.4vw, 1.2rem);
   color: rgba(255, 255, 255, 0.78);
-  animation: welcome-rise 0.9s ease 0.45s both;
 }
-.welcome-tagline i {
-  color: rgba(165, 243, 252, 0.9);
-}
-/* hint 的呼吸动画延迟 1.6s：等 rise（0.6s+0.9s=1.5s）结束后再开始，避免两个动画争抢 opacity 产生跳变 */
-.welcome-hint {
+.wc-tagline i { color: rgba(165, 243, 252, 0.9); }
+.wc-hint {
   margin-top: 26px;
   font-family: system-ui, sans-serif;
   font-size: 12px;
   letter-spacing: 0.22em;
   color: rgba(255, 255, 255, 0.9);
-  animation: welcome-rise 0.9s ease 0.6s both, welcome-breathe 2.4s ease-in-out 1.6s infinite;
+  animation: wc-breathe 2.4s ease-in-out 1.8s infinite;
 }
-.welcome-progress {
+.wc-progress {
+  position: absolute;
+  bottom: 26px;
+  left: 50%;
   width: min(220px, 52vw);
   height: 2px;
+  margin-left: calc(min(220px, 52vw) / -2);
   border-radius: 999px;
-  background: linear-gradient(90deg, rgba(56, 189, 248, 0.9), rgba(125, 211, 252, 0.35));
+  background: linear-gradient(90deg, rgba(125, 211, 252, 0.9), rgba(192, 132, 252, 0.5), rgba(255, 202, 133, 0.6));
   transform-origin: left center;
-  /* 时长由组件内联 animationDuration 驱动，与视频时长同步；此处 6s 仅为兜底占位 */
-  animation: welcome-progress 6s linear both;
-}
-
-@keyframes welcome-rise {
-  from { opacity: 0; transform: translateY(18px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes welcome-breathe {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.45; }
-}
-@keyframes welcome-progress {
-  from { transform: scaleX(0); }
-  to { transform: scaleX(1); }
+  transform: scaleX(0);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .welcome-screen,
-  .welcome-screen.is-leaving {
+  .wc-root,
+  .wc-root.is-leaving {
     animation-duration: 0.3s;
   }
-  .welcome-eyebrow,
-  .welcome-title,
-  .welcome-tagline,
-  .welcome-hint {
-    animation: none;
-  }
-  .welcome-hint {
-    color: rgba(255, 255, 255, 0.6);
-  }
-  .welcome-progress {
-    display: none;
-  }
+  .wc-title { animation: none; }
+  .wc-hint { animation: none; color: rgba(255, 255, 255, 0.6); }
+  .wc-progress { display: none; }
 }
 
 /* ============ Welcome cinematic (wc-) collage ============ */

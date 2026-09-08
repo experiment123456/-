@@ -106,7 +106,8 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
       tl.call(() => setTitleShown(true), undefined, "decrypt+=0.1")
         .fromTo(".wc-eyebrow", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.6 }, "decrypt+=0.35")
         .fromTo(".wc-tagline", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.6 }, "decrypt+=0.8")
-        .fromTo(".wc-hint", { opacity: 0 }, { opacity: 0.9, duration: 0.6 }, "decrypt+=1.2");
+        .fromTo(".wc-hint", { opacity: 0 }, { opacity: 0.9, duration: 0.6 }, "decrypt+=1.2")
+        .to(".wc-hint", { opacity: 0.55, duration: 1.2, ease: "sine.inOut", yoyo: true, repeat: -1 }, "decrypt+=1.8");
 
       // 进度条 = 时间轴进度
       tl.fromTo(".wc-progress", { scaleX: 0 }, { scaleX: 1, duration: PHASES.total, ease: "none" }, 0);

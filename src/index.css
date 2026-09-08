@@ -6524,7 +6524,6 @@ button:disabled {
   font-size: 12px;
   letter-spacing: 0.22em;
   color: rgba(255, 255, 255, 0.9);
-  animation: wc-breathe 2.4s ease-in-out 1.8s infinite;
 }
 .wc-progress {
   position: absolute;
@@ -6545,7 +6544,7 @@ button:disabled {
     animation-duration: 0.3s;
   }
   .wc-title { animation: none; }
-  .wc-hint { animation: none; color: rgba(255, 255, 255, 0.6); }
+  .wc-hint { color: rgba(255, 255, 255, 0.6); }
   .wc-progress { display: none; }
 }
 

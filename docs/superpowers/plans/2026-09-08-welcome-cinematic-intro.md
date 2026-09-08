@@ -199,7 +199,7 @@ export const INK = {
 
 export const clamp01 = (value: number) => (value < 0 ? 0 : value > 1 ? 1 : value);
 /** t 落在 [a,b] 的归一化进度 */
-export const segment = (t: number, a: number, b: number) => clamp01((t - a) / (b - a));
+export const segment = (t: number, a: number, b: number) => (b === a ? (t >= b ? 1 : 0) : clamp01((t - a) / (b - a)));
 export const easeInOutCubic = (p: number) => (p < 0.5 ? 4 * p * p * p : 1 - (-2 * p + 2) ** 3 / 2);
 /** 加速型缓动：用于镜头推进（expo.in 的可用近似，避免 p=0 处数值过小） */
 export const easeInCinematic = (p: number) => p ** 2.4;
@@ -242,6 +242,7 @@ export function createAbyssRenderer(canvas: HTMLCanvasElement): AbyssHandle {
 
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   let quality: keyof typeof QUALITY = "full";
+  let frozen = false; // freeze()/reduced-motion 静态帧标记：resize 清空画布后需补画
 
   // ---- 雾团 sprite（预渲染一次，运行期只 drawImage）----
   const fogSprite = document.createElement("canvas");
@@ -329,8 +330,11 @@ export function createAbyssRenderer(canvas: HTMLCanvasElement): AbyssHandle {
     dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     canvas.width = Math.round(width * dpr);
     canvas.height = Math.round(height * dpr);
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
     context.setTransform(dpr, 0, 0, dpr, 0, 0);
     vortex.forEach((p) => { p.px = 0; p.py = 0; });
+    if (frozen) drawFrame(performance.now());
   };
   const observer = new ResizeObserver(resize);
   observer.observe(parent);
@@ -475,7 +479,7 @@ export function createAbyssRenderer(canvas: HTMLCanvasElement): AbyssHandle {
       context.arc(x, y, pr, 0, Math.PI * 2);
       context.fillStyle = `rgba(${particle.color}, ${alpha.toFixed(3)})`;
       context.shadowColor = `rgba(${particle.color}, ${Math.min(0.9, alpha + 0.2).toFixed(3)})`;
-      context.shadowBlur = 5 + particle.depth * 8;
+      context.shadowBlur = quality === "lite" ? 0 : 5 + particle.depth * 8;
       context.fill();
       context.shadowBlur = 0;
       particle.px = x; particle.py = y;
@@ -597,6 +601,7 @@ export function createAbyssRenderer(canvas: HTMLCanvasElement): AbyssHandle {
   seed();
   resize();
   if (reduceMotion.matches) {
+    frozen = true;
     drawFrame(performance.now());
   } else {
     frame = requestAnimationFrame(loop);
@@ -609,7 +614,10 @@ export function createAbyssRenderer(canvas: HTMLCanvasElement): AbyssHandle {
       window.removeEventListener("pointermove", onPointerMove);
     },
     freeze: () => {
+      frozen = true;
       cancelAnimationFrame(frame);
+      observer.disconnect();
+      window.removeEventListener("pointermove", onPointerMove);
       drawFrame(performance.now());
     },
   };

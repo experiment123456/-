@@ -20,7 +20,7 @@ export const INK = {
 
 export const clamp01 = (value: number) => (value < 0 ? 0 : value > 1 ? 1 : value);
 /** t 落在 [a,b] 的归一化进度 */
-export const segment = (t: number, a: number, b: number) => clamp01((t - a) / (b - a));
+export const segment = (t: number, a: number, b: number) => (b === a ? (t >= b ? 1 : 0) : clamp01((t - a) / (b - a)));
 export const easeInOutCubic = (p: number) => (p < 0.5 ? 4 * p * p * p : 1 - (-2 * p + 2) ** 3 / 2);
 /** 加速型缓动：用于镜头推进（expo.in 的可用近似，避免 p=0 处数值过小） */
 export const easeInCinematic = (p: number) => p ** 2.4;

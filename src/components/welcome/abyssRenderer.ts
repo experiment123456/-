@@ -32,6 +32,7 @@ export function createAbyssRenderer(canvas: HTMLCanvasElement): AbyssHandle {
 
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   let quality: keyof typeof QUALITY = "full";
+  let frozen = false;
 
   // ---- 雾团 sprite（预渲染一次，运行期只 drawImage）----
   const fogSprite = document.createElement("canvas");
@@ -119,8 +120,11 @@ export function createAbyssRenderer(canvas: HTMLCanvasElement): AbyssHandle {
     dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     canvas.width = Math.round(width * dpr);
     canvas.height = Math.round(height * dpr);
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
     context.setTransform(dpr, 0, 0, dpr, 0, 0);
     vortex.forEach((p) => { p.px = 0; p.py = 0; });
+    if (frozen) drawFrame(performance.now());
   };
   const observer = new ResizeObserver(resize);
   observer.observe(parent);
@@ -265,7 +269,7 @@ export function createAbyssRenderer(canvas: HTMLCanvasElement): AbyssHandle {
       context.arc(x, y, pr, 0, Math.PI * 2);
       context.fillStyle = `rgba(${particle.color}, ${alpha.toFixed(3)})`;
       context.shadowColor = `rgba(${particle.color}, ${Math.min(0.9, alpha + 0.2).toFixed(3)})`;
-      context.shadowBlur = 5 + particle.depth * 8;
+      context.shadowBlur = quality === "lite" ? 0 : 5 + particle.depth * 8;
       context.fill();
       context.shadowBlur = 0;
       particle.px = x; particle.py = y;
@@ -387,6 +391,7 @@ export function createAbyssRenderer(canvas: HTMLCanvasElement): AbyssHandle {
   seed();
   resize();
   if (reduceMotion.matches) {
+    frozen = true;
     drawFrame(performance.now());
   } else {
     frame = requestAnimationFrame(loop);
@@ -399,7 +404,10 @@ export function createAbyssRenderer(canvas: HTMLCanvasElement): AbyssHandle {
       window.removeEventListener("pointermove", onPointerMove);
     },
     freeze: () => {
+      frozen = true;
       cancelAnimationFrame(frame);
+      observer.disconnect();
+      window.removeEventListener("pointermove", onPointerMove);
       drawFrame(performance.now());
     },
   };

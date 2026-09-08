@@ -1252,3 +1252,15 @@ git commit -m "chore: welcome cinematic intro verified against qa checklist"
 - **规格覆盖**：§2 六幕分镜 → Task 4 时间轴（label 一一对应）；§3 素材清单 → Task 3 TILES + Task 4 视频；§4 色彩/粒子/质感 → Task 2（INK 三色、漩涡移植、颗粒/光柱/vignette）+ Task 3（彗尾三色）；§5 架构 → Task 2–5 文件划分与 `onReveal` 契约；§6 降级（视频看门狗/reduced-motion/弱机降载/跳过/断网）→ Task 4 Step 2 + Task 2 watchPerformance + QA 外链全阻断；§7 测试 → Task 1/6；§8 不做清单未越界。
 - **占位符扫描**：无 TBD/TODO；所有代码步骤均含完整代码。
 - **类型一致性**：`PHASES`/`INK`/`segment`/`easeInCinematic` 在 Task 2 定义、Task 4 引用名称一致；`createAbyssRenderer` 返回 `AbyssHandle { destroy, freeze }`，Task 4 只用 `destroy`（freeze 留给潜在海报复用，reduced-motion 海报由 gsap.set 实现，不依赖它）；`data-side`/`data-order`/`is-flying` 在 Task 3 与 Task 4 两侧一致；QA 选择器 `.wc-root/.wc-canvas/.wc-collage` 与组件类名一致。
+
+## 验收后润色记录：水母有机化（用户反馈"形象太僵硬"）
+
+用户手动验收后反馈水母僵硬，在 Task 2 渲染器上追加一轮生物感重绘（不改时间轴结构与其它幕）：
+
+- **脉动**：频率 1.9 → 3.4 rad/s（周期约 1.85s），保留收缩快（p^0.7）舒张慢（p^1.4）的不对称推进；伞宽/伞高反相呼吸，顶端随脉动轻晃（±0.025 bellW），整体慢速侧倾 ±0.05rad 打破"垂直悬停"感。
+- **生长曲线**：jellyGrow 由 easeInCinematic(p^2.4)（增长全压后段、水母长期过小）改为 easeInOutCubic 并在 guardianEnd-0.3 提前完成——守护者峰值有 ≥1.5s 完整尺寸停留；`easeInCinematic` 从 palette 删除。
+- **伞盖**：贝塞尔圆拱 + 6 道深浅错落的扇贝伞缘（行波 ripple 随脉动传播）；三层渲染 = 外膜径向渐变（白核→青→紫缘）+ 伞缘内发光（bellPath 裁剪 underglow，触须"从光里长出来"）+ 内核辉光（同裁剪，废除半椭圆的弦线硬边）；辐纹水管改自伞盖中段发散（α 0.07，不在顶点汇聚）。
+- **触须**：9 → 11 条三段式 S 曲线；相位步进改非共振的 k*5.1（旧 k*2.4 与 2π 共振导致成束同摆）；外倾裙摆 leanX=(u-0.5)·0.5R + 随机漂移；三档景深描边（近粗亮/远细淡，中档偏紫）；尖端金/紫/青光点；触须根埋进伞盖内侧（rootY = marginY - 0.32 bellH）。
+- **口腕**：3 条上宽下细收梢的双色飘带（废除等宽圆帽的"胶囊管"观感）。
+- **QA 配套**：新增 `scripts/welcome-frame-probe.mjs`——渲染器把 `api.seek` 挂到 `window.__lumoraSeek`（destroy 时移除），可把时间轴钉在任意秒逐帧截图人工检查形态；welcome-qa 采样点补 6400ms（守护者峰值帧）。
+- **教训**：QA/探针脚本走 server.mjs 的**静态 dist**，改完源码必须先 `npm run build` 再跑测——本轮曾因旧 dist 连续误判两轮修改"没生效"。

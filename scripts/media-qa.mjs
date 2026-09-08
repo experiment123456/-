@@ -37,7 +37,8 @@ try {
     await setup(context);
     const page = await context.newPage();
     page.on("pageerror", (error) => pageErrors.push(error.message));
-    page.setDefaultTimeout(12000);
+    // 15s：欢迎开场在每次全新加载时覆盖约 11.5s，12s 会让"等待开场结束后可点击"的动作贴着超时线
+    page.setDefaultTimeout(15000);
     await page.goto(base + hash, { waitUntil: "domcontentloaded" });
     return page;
   }
@@ -83,10 +84,11 @@ try {
   assert.equal(results.firstMusicClickPlays, true, "first music button click must play, not immediately pause again");
 
   const featureViews = ["workbench", "dh", "network", "catalog", "innovation"];
+  // 创新页（reef 视觉改版）的音乐按钮类名是 .reef-music，其余视图仍是 .home-music-toggle
   for (const hash of featureViews) {
     const page = await pageAt("#" + hash);
-    await page.locator(".home-music-toggle.needs-action").waitFor();
-    await page.locator(".home-music-toggle").click();
+    await page.locator(".home-music-toggle.needs-action, .reef-music").waitFor();
+    await page.locator(".home-music-toggle, .reef-music").click();
     await page.waitForFunction(() => { const audio = document.querySelector("audio"); return audio && !audio.paused && !audio.muted && audio.currentTime > 0; });
     await page.context().close();
   }
@@ -95,16 +97,16 @@ try {
   for (const hash of featureViews) {
     await workbench.evaluate((value) => { location.hash = value; }, hash);
     await workbench.waitForURL((url) => url.hash === "#" + hash);
-    await workbench.locator(".home-music-toggle.is-playing").waitFor();
+    await workbench.locator(".home-music-toggle.is-playing, .reef-music.is-playing").waitFor();
     assert.equal(await workbench.locator("audio").evaluate((audio) => audio.paused), false);
   }
-  await workbench.locator(".home-music-toggle").click();
+  await workbench.locator(".home-music-toggle, .reef-music").click();
   for (const hash of featureViews) {
     await workbench.evaluate((value) => { location.hash = value; }, hash);
     await workbench.waitForTimeout(100);
     assert.equal(await workbench.locator("audio").evaluate((audio) => audio.paused), true, "manual pause must persist");
   }
-  await workbench.locator(".home-music-toggle").click();
+  await workbench.locator(".home-music-toggle, .reef-music").click();
   await workbench.waitForFunction(() => !document.querySelector("audio").paused);
   await workbench.evaluate(() => { location.hash = "login"; });
   await workbench.locator(".auth-whale-video").waitFor();

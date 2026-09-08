@@ -55,6 +55,7 @@ function App() {
   const [user, setUser] = useState<AccountUser | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
+  const [appRevealing, setAppRevealing] = useState(false);
   const [loginVideoNeedsAction, setLoginVideoNeedsAction] = useState(true);
   const [loginVideoMuted, setLoginVideoMuted] = useState(true);
   const [loginVideoPlaying, setLoginVideoPlaying] = useState(false);
@@ -307,7 +308,7 @@ function App() {
   return (
     <section
       id="app-scene"
-      className={`app-scene relative h-[100svh] w-full overflow-hidden bg-black text-white ${settings.reducedMotion ? "motion-reduced" : ""}`}
+      className={`app-scene relative h-[100svh] w-full overflow-hidden bg-black text-white ${settings.reducedMotion ? "motion-reduced" : ""} ${appRevealing ? "is-revealing" : ""}`}
     >
       {isInnovationSurface ? (
         <div className={`absolute inset-0 z-0 ${isAgentView ? "bg-[#060808]" : "bg-[#06404b]"}`} aria-hidden="true" />
@@ -517,7 +518,7 @@ function App() {
         onNavigate={(target: AgentNavigateTarget) => navigate(target)}
       />
 
-      {showWelcome && <WelcomeScreen onDismiss={() => setShowWelcome(false)} />}
+      {showWelcome && <WelcomeScreen onDismiss={() => setShowWelcome(false)} onReveal={() => setAppRevealing(true)} />}
       {innovationTransition !== "idle" && (
         <div className={`innovation-route-transition is-${innovationTransition}`} aria-hidden="true" />
       )}

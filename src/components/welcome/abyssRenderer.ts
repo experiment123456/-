@@ -526,7 +526,7 @@ export function createAbyssRenderer(canvas: HTMLCanvasElement): AbyssHandle {
       drawFrame(performance.now());
     },
     seek: (t: number) => {
-      seekT = t;
+      seekT = t >= 0 ? t : -1; // 负值 = 恢复实时时钟
       drawFrame(performance.now());
     },
   };

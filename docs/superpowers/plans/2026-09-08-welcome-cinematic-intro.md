@@ -700,14 +700,13 @@ export default function MosaicCollage() {
   grid-template-rows: repeat(3, 1fr);
   grid-template-columns: repeat(3, 1fr);
   gap: clamp(6px, 1vmin, 12px);
-  transform: translate(-50%, -50%);
+  translate: -50% -50%; /* 独立属性：GSAP 内联 transform 与其叠加，缩放期间 resize 仍居中 */
 }
 /* .wc-tile 是包装 div（承载 is-flying 彗尾伪元素；img 是替换元素，伪元素不渲染） */
 .wc-tile {
   position: relative;
   width: 100%;
   height: 100%;
-  border-radius: 10px;
   opacity: 0;
   will-change: transform, opacity, filter;
 }

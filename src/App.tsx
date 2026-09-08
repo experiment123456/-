@@ -306,7 +306,8 @@ function App() {
   };
 
   return (
-    <section
+    <>
+      <section
       id="app-scene"
       className={`app-scene relative h-[100svh] w-full overflow-hidden bg-black text-white ${settings.reducedMotion ? "motion-reduced" : ""} ${appRevealing ? "is-revealing" : ""}`}
     >
@@ -518,7 +519,6 @@ function App() {
         onNavigate={(target: AgentNavigateTarget) => navigate(target)}
       />
 
-      {showWelcome && <WelcomeScreen onDismiss={() => setShowWelcome(false)} onReveal={() => setAppRevealing(true)} />}
       {innovationTransition !== "idle" && (
         <div className={`innovation-route-transition is-${innovationTransition}`} aria-hidden="true" />
       )}
@@ -558,6 +558,8 @@ function App() {
         aria-label="Komorebi 舒缓背景音乐"
       />
     </section>
+      {showWelcome && <WelcomeScreen onDismiss={() => setShowWelcome(false)} onReveal={() => setAppRevealing(true)} />}
+    </>
   );
 }
 

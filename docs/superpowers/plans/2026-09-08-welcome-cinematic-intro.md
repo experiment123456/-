@@ -37,7 +37,7 @@ import { chromium } from "playwright-core";
 import { browserLocation, screenshotDirectory } from "./browser-utils.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
-const output = screenshotDirectory("welcome-qa");
+const output = screenshotDirectory("lumora-welcome-qa");
 const server = spawn(process.execPath, ["server.mjs"], {
   cwd: root, env: { ...process.env, PORT: "0", LUMORA_USER_DATA: join(await mkdtemp(join(tmpdir(), "lumora-welcome-qa-")), "users.json") },
   stdio: ["ignore", "pipe", "pipe"], windowsHide: true,
@@ -93,8 +93,10 @@ try {
 
   // ---- 页面 A：分帧采样 + 拼贴图就绪 + 自动飞入 ----
   const cine = await pageAt();
-  results.overlayPresent = await cine.locator(".wc-root").isVisible();
+  await cine.locator(".wc-root").waitFor(); // 等 React 挂载，避免 isVisible 快照竞态
+  results.overlayPresent = true;
   results.overlayZIndex = await cine.locator(".wc-root").evaluate((el) => getComputedStyle(el).zIndex);
+  await cine.locator(".wc-canvas").waitFor(); // t0 对齐动画起点，首帧采样不再受冷启动影响
   const samples = [500, 2000, 5000, 7000, 9000, 10500];
   const t0 = Date.now();
   for (const at of samples) {
@@ -120,9 +122,11 @@ try {
   await skip.context().close();
 
   // ---- 页面 C：prefers-reduced-motion 海报式 ----
-  const reduced = await pageAt(async (context) => {}, { reducedMotion: "reduce" });
+  // 断言对象是 .wc-tile / .wc-core（海报路径 gsap.set 的目标），而非恒为 opacity 1 的 .wc-collage
+  const reduced = await pageAt(undefined, { reducedMotion: "reduce" });
   await reduced.waitForTimeout(800);
-  results.reducedMotionPoster = await reduced.locator(".wc-collage").evaluate((el) => getComputedStyle(el).opacity === "1");
+  results.reducedMotionPoster = await reduced.locator(".wc-tile").first().evaluate((el) => getComputedStyle(el).opacity === "1")
+    && await reduced.locator(".wc-core").evaluate((el) => getComputedStyle(el).opacity === "1");
   assert.equal(results.reducedMotionPoster, true, "reduced motion must show the poster collage immediately");
   await reduced.locator(".wc-root").waitFor({ state: "detached", timeout: 5000 });
   results.reducedMotionAutoEnters = true;
@@ -135,6 +139,10 @@ try {
   assert.equal(results.clickSkips, true, "click must skip into the app");
   assert.equal(results.reducedMotionAutoEnters, true, "reduced-motion poster must auto-enter");
   assert.deepEqual(pageErrors, []);
+} catch (error) {
+  // 失败时也要吐出已收集的结果与截图目录，便于排障
+  console.error(JSON.stringify({ results, pageErrors, artifacts: output }));
+  throw error;
 } finally {
   try { await browser?.close(); } finally { server.kill(); }
 }
@@ -191,7 +199,7 @@ export const INK = {
 
 export const clamp01 = (value: number) => (value < 0 ? 0 : value > 1 ? 1 : value);
 /** t 落在 [a,b] 的归一化进度 */
-export const segment = (t: number, a: number, b: number) => clamp01((t - a) / (b - a));
+export const segment = (t: number, a: number, b: number) => (b === a ? (t >= b ? 1 : 0) : clamp01((t - a) / (b - a)));
 export const easeInOutCubic = (p: number) => (p < 0.5 ? 4 * p * p * p : 1 - (-2 * p + 2) ** 3 / 2);
 /** 加速型缓动：用于镜头推进（expo.in 的可用近似，避免 p=0 处数值过小） */
 export const easeInCinematic = (p: number) => p ** 2.4;
@@ -234,6 +242,7 @@ export function createAbyssRenderer(canvas: HTMLCanvasElement): AbyssHandle {
 
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   let quality: keyof typeof QUALITY = "full";
+  let frozen = false; // freeze()/reduced-motion 静态帧标记：resize 清空画布后需补画
 
   // ---- 雾团 sprite（预渲染一次，运行期只 drawImage）----
   const fogSprite = document.createElement("canvas");
@@ -321,8 +330,11 @@ export function createAbyssRenderer(canvas: HTMLCanvasElement): AbyssHandle {
     dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     canvas.width = Math.round(width * dpr);
     canvas.height = Math.round(height * dpr);
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
     context.setTransform(dpr, 0, 0, dpr, 0, 0);
     vortex.forEach((p) => { p.px = 0; p.py = 0; });
+    if (frozen) drawFrame(performance.now());
   };
   const observer = new ResizeObserver(resize);
   observer.observe(parent);
@@ -467,7 +479,7 @@ export function createAbyssRenderer(canvas: HTMLCanvasElement): AbyssHandle {
       context.arc(x, y, pr, 0, Math.PI * 2);
       context.fillStyle = `rgba(${particle.color}, ${alpha.toFixed(3)})`;
       context.shadowColor = `rgba(${particle.color}, ${Math.min(0.9, alpha + 0.2).toFixed(3)})`;
-      context.shadowBlur = 5 + particle.depth * 8;
+      context.shadowBlur = quality === "lite" ? 0 : 5 + particle.depth * 8;
       context.fill();
       context.shadowBlur = 0;
       particle.px = x; particle.py = y;
@@ -589,6 +601,7 @@ export function createAbyssRenderer(canvas: HTMLCanvasElement): AbyssHandle {
   seed();
   resize();
   if (reduceMotion.matches) {
+    frozen = true;
     drawFrame(performance.now());
   } else {
     frame = requestAnimationFrame(loop);
@@ -601,7 +614,10 @@ export function createAbyssRenderer(canvas: HTMLCanvasElement): AbyssHandle {
       window.removeEventListener("pointermove", onPointerMove);
     },
     freeze: () => {
+      frozen = true;
       cancelAnimationFrame(frame);
+      observer.disconnect();
+      window.removeEventListener("pointermove", onPointerMove);
       drawFrame(performance.now());
     },
   };
@@ -651,16 +667,15 @@ export default function MosaicCollage() {
   return (
     <div className="wc-collage" aria-hidden="true">
       {TILES.map((tile) => (
-        <img
+        <div
           key={tile.src}
           className="wc-tile"
           data-side={tile.side}
           data-order={tile.order}
           style={{ gridRow: tile.row, gridColumn: tile.col }}
-          src={tile.src}
-          alt=""
-          draggable={false}
-        />
+        >
+          <img className="wc-tile-img" src={tile.src} alt="" draggable={false} />
+        </div>
       ))}
       <div className="wc-core" style={{ gridRow: 2, gridColumn: 2 }}>
         <span className="wc-core-glyph">L</span>
@@ -685,17 +700,24 @@ export default function MosaicCollage() {
   grid-template-rows: repeat(3, 1fr);
   grid-template-columns: repeat(3, 1fr);
   gap: clamp(6px, 1vmin, 12px);
-  transform: translate(-50%, -50%);
+  translate: -50% -50%; /* 独立属性：GSAP 内联 transform 与其叠加，缩放期间 resize 仍居中 */
 }
+/* .wc-tile 是包装 div（承载 is-flying 彗尾伪元素；img 是替换元素，伪元素不渲染） */
 .wc-tile {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  will-change: transform, opacity, filter;
+}
+.wc-tile-img {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-radius: 10px;
   border: 1px solid rgba(165, 243, 252, 0.35);
   box-shadow: 0 0 18px rgba(56, 189, 248, 0.25);
-  opacity: 0;
-  will-change: transform, opacity, filter;
 }
 /* 飞行中的彗尾：来向一侧拖出渐隐光带，青紫金交替（data-side 决定方向） */
 .wc-tile.is-flying::after {
@@ -706,7 +728,6 @@ export default function MosaicCollage() {
   width: 46vw;
   pointer-events: none;
 }
-.wc-tile { position: relative; }
 .wc-tile.is-flying[data-side="-1"]::after { right: 100%; background: linear-gradient(270deg, rgba(125, 211, 252, 0.4), rgba(192, 132, 252, 0.12) 55%, transparent); }
 .wc-tile.is-flying[data-side="1"]::after { left: 100%; background: linear-gradient(90deg, rgba(255, 202, 133, 0.34), rgba(125, 211, 252, 0.12) 55%, transparent); }
 .wc-core {
@@ -778,6 +799,9 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
   const [titleShown, setTitleShown] = useState(false);
   const [plainTitle, setPlainTitle] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
+  const videoReadyRef = useRef(false);
+  // 渲染期即可用的减动效标记：不渲染视频、跳过时不闪光
+  const [reducedMotion] = useState(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   const rootRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const flashRef = useRef<HTMLDivElement>(null);
@@ -792,7 +816,7 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
     timelineRef.current?.kill();
     const flash = flashRef.current;
     const finish = () => setIsLeaving(true);
-    if (fast && flash) {
+    if (fast && flash && !reducedMotion) {
       gsap.timeline({ onComplete: finish })
         .fromTo(flash, { opacity: 0 }, { opacity: 0.9, duration: 0.12, ease: "power2.in" })
         .to(flash, { opacity: 0, duration: 0.28, ease: "power2.out" });
@@ -806,7 +830,6 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
     const canvas = rootRef.current?.querySelector<HTMLCanvasElement>(".wc-canvas");
     if (!root || !canvas) return;
 
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const setFinalPoster = () => {
       gsap.set(root.querySelectorAll(".wc-tile"), { opacity: 1, xPercent: 0, rotateY: 0, filter: "blur(0px)" });
       gsap.set(root.querySelector(".wc-core"), { opacity: 1, scale: 1, filter: "blur(0px)" });
@@ -814,7 +837,7 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
     };
 
     // 减动效：直接呈现"画布+标题"海报构图，短暂停留后淡入主页面
-    if (reduceMotion.matches) {
+    if (reducedMotion) {
       setFinalPoster();
       setTitleShown(true);
       setPlainTitle(true);
@@ -836,7 +859,8 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
 
       // 视频：descent 淡入做深海底层（元素本身 loading 前不可见，失败也永不阻塞）
       tl.fromTo(videoRef.current, { opacity: 0 }, { opacity: 0.35, duration: 1.2 }, "descent")
-        .to(videoRef.current, { opacity: 0, duration: 0.8 }, "unfold");
+        .to(videoRef.current, { opacity: 0, duration: 0.8 }, "unfold")
+        .call(() => videoRef.current?.pause(), undefined, "unfold+=0.85");
 
       // 拼贴：unfold 时 8 张截图两侧带透视飞入 + 彗尾，核心格吸附
       root.querySelectorAll<HTMLElement>(".wc-tile").forEach((tile) => {
@@ -865,7 +889,9 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
       tl.call(() => setTitleShown(true), undefined, "decrypt+=0.1")
         .fromTo(".wc-eyebrow", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.6 }, "decrypt+=0.35")
         .fromTo(".wc-tagline", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.6 }, "decrypt+=0.8")
-        .fromTo(".wc-hint", { opacity: 0 }, { opacity: 0.9, duration: 0.6 }, "decrypt+=1.2");
+        .fromTo(".wc-hint", { opacity: 0 }, { opacity: 0.9, duration: 0.6 }, "decrypt+=1.2")
+        // 呼吸交给 GSAP（CSS 动画会覆盖内联 opacity，导致提示提前出现）
+        .to(".wc-hint", { opacity: 0.55, duration: 1.2, ease: "sine.inOut", yoyo: true, repeat: -1 }, "decrypt+=1.8");
 
       // 进度条 = 时间轴进度
       tl.fromTo(".wc-progress", { scaleX: 0 }, { scaleX: 1, duration: PHASES.total, ease: "none" }, 0);
@@ -877,9 +903,9 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
         .call(() => dismiss(false), undefined, PHASES.total);
     }, root);
 
-    // 视频看门狗：4s 仍未就绪则永久移除（程序化背景无缝顶替）
+    // 视频看门狗：4s 仍未就绪则永久隐藏（程序化背景无缝顶替；ref 判定避免闭包过期值）
     const watchdog = window.setTimeout(() => {
-      if (!videoReady) videoRef.current?.remove();
+      if (!videoReadyRef.current && videoRef.current) videoRef.current.style.display = "none";
     }, 4000);
 
     return () => {
@@ -894,6 +920,7 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
   useEffect(() => {
     if (isLeaving) return;
     const onKey = (event: KeyboardEvent) => {
+      if (event.key === " ") event.preventDefault();
       if (event.key === "Enter" || event.key === " " || event.key === "Escape") dismiss(true);
     };
     window.addEventListener("keydown", onKey);
@@ -914,25 +941,27 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
       }}
     >
       <div className="wc-base" aria-hidden="true" />
-      <video
-        ref={videoRef}
-        className="wc-video"
-        autoPlay
-        muted
-        loop
-        playsInline
-        src={VIDEO_SRC}
-        style={{ visibility: videoReady ? "visible" : "hidden" }}
-        onLoadedData={() => setVideoReady(true)}
-        aria-hidden="true"
-      />
+      {!reducedMotion && (
+        <video
+          ref={videoRef}
+          className="wc-video"
+          autoPlay
+          muted
+          loop
+          playsInline
+          src={VIDEO_SRC}
+          style={{ visibility: videoReady ? "visible" : "hidden" }}
+          onLoadedData={() => { videoReadyRef.current = true; setVideoReady(true); }}
+          aria-hidden="true"
+        />
+      )}
       <canvas className="wc-canvas" aria-hidden="true" />
       <div className="wc-wash" aria-hidden="true" />
       <MosaicCollage />
       <div className="wc-flash" ref={flashRef} aria-hidden="true" />
       <div className="wc-content">
         <p className="wc-eyebrow wc-fade">Lumora · Cipher Laboratory</p>
-        <h1 className="wc-title">
+        <h1 className={`wc-title${titleShown && !plainTitle ? " is-entering" : ""}`}>
           {titleShown && (plainTitle
             ? <span>欢迎进入密码实验室</span>
             : (
@@ -959,7 +988,7 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
 
 - [ ] **Step 3: 替换 `src/index.css` 的 welcome 样式块**
 
-删除从 `/* ============ Welcome screen ============ */` 注释起至文件末尾（含旧 `@media (prefers-reduced-motion: reduce)` 块，约 6410–6551 行），原位替换为：
+删除从 `/* ============ Welcome screen ============ */` 注释起、至 `/* ============ Welcome cinematic (wc-) collage ============ */` 注释**之前**的整段（含旧 `@media (prefers-reduced-motion: reduce)` 块；注意 Task 3 追加的拼贴块已在文件末尾，**不可删除**），并在原位插入下面的新样式块：
 
 ```css
 /* ============ Welcome cinematic (wc-) ============ */
@@ -1061,6 +1090,9 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
   text-shadow:
     0 0 26px rgba(56, 189, 248, 0.45),
     0 0 90px rgba(192, 132, 252, 0.2);
+}
+/* 字距收拢动画挂在标题实际挂载时（.is-entering），避免在空标题上空跑 */
+.wc-title.is-entering {
   animation: wc-title-track 1.4s ease-out both;
 }
 @keyframes wc-title-track {
@@ -1079,7 +1111,6 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
   font-size: 12px;
   letter-spacing: 0.22em;
   color: rgba(255, 255, 255, 0.9);
-  animation: wc-breathe 2.4s ease-in-out 1.8s infinite;
 }
 .wc-progress {
   position: absolute;
@@ -1099,8 +1130,7 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
   .wc-root.is-leaving {
     animation-duration: 0.3s;
   }
-  .wc-title { animation: none; }
-  .wc-hint { animation: none; color: rgba(255, 255, 255, 0.6); }
+  .wc-hint { color: rgba(255, 255, 255, 0.6); }
   .wc-progress { display: none; }
 }
 ```
@@ -1145,7 +1175,7 @@ const [appRevealing, setAppRevealing] = useState(false);
 className={`app-scene relative h-[100svh] w-full overflow-hidden bg-black text-white ${settings.reducedMotion ? "motion-reduced" : ""} ${appRevealing ? "is-revealing" : ""}`}
 ```
 
-520 行附近，WelcomeScreen 传入 onReveal：
+WelcomeScreen 挂载点：**移到 `</section>`（#app-scene 闭合）之后**（fixed+z-60 仍覆盖全屏；否则飞入动画的 filter/transform 会波及覆盖层自身），并传入 onReveal：
 
 ```tsx
 {showWelcome && <WelcomeScreen onDismiss={() => setShowWelcome(false)} onReveal={() => setAppRevealing(true)} />}
@@ -1156,7 +1186,7 @@ className={`app-scene relative h-[100svh] w-full overflow-hidden bg-black text-w
 ```css
 /* ============ Welcome reveal：真实主页面迎面放大变清晰 ============ */
 .app-scene.is-revealing {
-  animation: app-fly-in 1.1s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  animation: app-fly-in 1.1s cubic-bezier(0.22, 0.61, 0.36, 1) backwards; /* backwards：结束后卸下 filter/transform，不留包含块 */
 }
 @keyframes app-fly-in {
   from { transform: scale(0.94); filter: blur(14px) brightness(1.2); }
@@ -1165,6 +1195,7 @@ className={`app-scene relative h-[100svh] w-full overflow-hidden bg-black text-w
 @media (prefers-reduced-motion: reduce) {
   .app-scene.is-revealing { animation: none; }
 }
+.app-scene.motion-reduced.is-revealing { animation: none; }
 ```
 
 - [ ] **Step 3: 类型检查**
@@ -1221,3 +1252,15 @@ git commit -m "chore: welcome cinematic intro verified against qa checklist"
 - **规格覆盖**：§2 六幕分镜 → Task 4 时间轴（label 一一对应）；§3 素材清单 → Task 3 TILES + Task 4 视频；§4 色彩/粒子/质感 → Task 2（INK 三色、漩涡移植、颗粒/光柱/vignette）+ Task 3（彗尾三色）；§5 架构 → Task 2–5 文件划分与 `onReveal` 契约；§6 降级（视频看门狗/reduced-motion/弱机降载/跳过/断网）→ Task 4 Step 2 + Task 2 watchPerformance + QA 外链全阻断；§7 测试 → Task 1/6；§8 不做清单未越界。
 - **占位符扫描**：无 TBD/TODO；所有代码步骤均含完整代码。
 - **类型一致性**：`PHASES`/`INK`/`segment`/`easeInCinematic` 在 Task 2 定义、Task 4 引用名称一致；`createAbyssRenderer` 返回 `AbyssHandle { destroy, freeze }`，Task 4 只用 `destroy`（freeze 留给潜在海报复用，reduced-motion 海报由 gsap.set 实现，不依赖它）；`data-side`/`data-order`/`is-flying` 在 Task 3 与 Task 4 两侧一致；QA 选择器 `.wc-root/.wc-canvas/.wc-collage` 与组件类名一致。
+
+## 验收后润色记录：水母有机化（用户反馈"形象太僵硬"）
+
+用户手动验收后反馈水母僵硬，在 Task 2 渲染器上追加一轮生物感重绘（不改时间轴结构与其它幕）：
+
+- **脉动**：频率 1.9 → 3.4 rad/s（周期约 1.85s），保留收缩快（p^0.7）舒张慢（p^1.4）的不对称推进；伞宽/伞高反相呼吸，顶端随脉动轻晃（±0.025 bellW），整体慢速侧倾 ±0.05rad 打破"垂直悬停"感。
+- **生长曲线**：jellyGrow 由 easeInCinematic(p^2.4)（增长全压后段、水母长期过小）改为 easeInOutCubic 并在 guardianEnd-0.3 提前完成——守护者峰值有 ≥1.5s 完整尺寸停留；`easeInCinematic` 从 palette 删除。
+- **伞盖**：贝塞尔圆拱 + 6 道深浅错落的扇贝伞缘（行波 ripple 随脉动传播）；三层渲染 = 外膜径向渐变（白核→青→紫缘）+ 伞缘内发光（bellPath 裁剪 underglow，触须"从光里长出来"）+ 内核辉光（同裁剪，废除半椭圆的弦线硬边）；辐纹水管改自伞盖中段发散（α 0.07，不在顶点汇聚）。
+- **触须**：9 → 11 条三段式 S 曲线；相位步进改非共振的 k*5.1（旧 k*2.4 与 2π 共振导致成束同摆）；外倾裙摆 leanX=(u-0.5)·0.5R + 随机漂移；三档景深描边（近粗亮/远细淡，中档偏紫）；尖端金/紫/青光点；触须根埋进伞盖内侧（rootY = marginY - 0.32 bellH）。
+- **口腕**：3 条上宽下细收梢的双色飘带（废除等宽圆帽的"胶囊管"观感）。
+- **QA 配套**：新增 `scripts/welcome-frame-probe.mjs`——渲染器把 `api.seek` 挂到 `window.__lumoraSeek`（destroy 时移除），可把时间轴钉在任意秒逐帧截图人工检查形态；welcome-qa 采样点补 6400ms（守护者峰值帧）。
+- **教训**：QA/探针脚本走 server.mjs 的**静态 dist**，改完源码必须先 `npm run build` 再跑测——本轮曾因旧 dist 连续误判两轮修改"没生效"。

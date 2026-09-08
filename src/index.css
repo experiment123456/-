@@ -6506,6 +6506,8 @@ button:disabled {
   text-shadow:
     0 0 26px rgba(56, 189, 248, 0.45),
     0 0 90px rgba(192, 132, 252, 0.2);
+}
+.wc-title.is-entering {
   animation: wc-title-track 1.4s ease-out both;
 }
 @keyframes wc-title-track {
@@ -6543,7 +6545,6 @@ button:disabled {
   .wc-root.is-leaving {
     animation-duration: 0.3s;
   }
-  .wc-title { animation: none; }
   .wc-hint { color: rgba(255, 255, 255, 0.6); }
   .wc-progress { display: none; }
 }

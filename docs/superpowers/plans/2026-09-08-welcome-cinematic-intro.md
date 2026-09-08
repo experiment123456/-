@@ -800,6 +800,8 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
   const [plainTitle, setPlainTitle] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
   const videoReadyRef = useRef(false);
+  // 渲染期即可用的减动效标记：不渲染视频、跳过时不闪光
+  const [reducedMotion] = useState(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   const rootRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const flashRef = useRef<HTMLDivElement>(null);
@@ -814,7 +816,7 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
     timelineRef.current?.kill();
     const flash = flashRef.current;
     const finish = () => setIsLeaving(true);
-    if (fast && flash) {
+    if (fast && flash && !reducedMotion) {
       gsap.timeline({ onComplete: finish })
         .fromTo(flash, { opacity: 0 }, { opacity: 0.9, duration: 0.12, ease: "power2.in" })
         .to(flash, { opacity: 0, duration: 0.28, ease: "power2.out" });
@@ -828,7 +830,6 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
     const canvas = rootRef.current?.querySelector<HTMLCanvasElement>(".wc-canvas");
     if (!root || !canvas) return;
 
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     const setFinalPoster = () => {
       gsap.set(root.querySelectorAll(".wc-tile"), { opacity: 1, xPercent: 0, rotateY: 0, filter: "blur(0px)" });
       gsap.set(root.querySelector(".wc-core"), { opacity: 1, scale: 1, filter: "blur(0px)" });
@@ -836,7 +837,7 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
     };
 
     // 减动效：直接呈现"画布+标题"海报构图，短暂停留后淡入主页面
-    if (reduceMotion.matches) {
+    if (reducedMotion) {
       setFinalPoster();
       setTitleShown(true);
       setPlainTitle(true);
@@ -858,7 +859,8 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
 
       // 视频：descent 淡入做深海底层（元素本身 loading 前不可见，失败也永不阻塞）
       tl.fromTo(videoRef.current, { opacity: 0 }, { opacity: 0.35, duration: 1.2 }, "descent")
-        .to(videoRef.current, { opacity: 0, duration: 0.8 }, "unfold");
+        .to(videoRef.current, { opacity: 0, duration: 0.8 }, "unfold")
+        .call(() => videoRef.current?.pause(), undefined, "unfold+=0.85");
 
       // 拼贴：unfold 时 8 张截图两侧带透视飞入 + 彗尾，核心格吸附
       root.querySelectorAll<HTMLElement>(".wc-tile").forEach((tile) => {
@@ -918,6 +920,7 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
   useEffect(() => {
     if (isLeaving) return;
     const onKey = (event: KeyboardEvent) => {
+      if (event.key === " ") event.preventDefault();
       if (event.key === "Enter" || event.key === " " || event.key === "Escape") dismiss(true);
     };
     window.addEventListener("keydown", onKey);
@@ -938,25 +941,27 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
       }}
     >
       <div className="wc-base" aria-hidden="true" />
-      <video
-        ref={videoRef}
-        className="wc-video"
-        autoPlay
-        muted
-        loop
-        playsInline
-        src={VIDEO_SRC}
-        style={{ visibility: videoReady ? "visible" : "hidden" }}
-        onLoadedData={() => { videoReadyRef.current = true; setVideoReady(true); }}
-        aria-hidden="true"
-      />
+      {!reducedMotion && (
+        <video
+          ref={videoRef}
+          className="wc-video"
+          autoPlay
+          muted
+          loop
+          playsInline
+          src={VIDEO_SRC}
+          style={{ visibility: videoReady ? "visible" : "hidden" }}
+          onLoadedData={() => { videoReadyRef.current = true; setVideoReady(true); }}
+          aria-hidden="true"
+        />
+      )}
       <canvas className="wc-canvas" aria-hidden="true" />
       <div className="wc-wash" aria-hidden="true" />
       <MosaicCollage />
       <div className="wc-flash" ref={flashRef} aria-hidden="true" />
       <div className="wc-content">
         <p className="wc-eyebrow wc-fade">Lumora · Cipher Laboratory</p>
-        <h1 className="wc-title">
+        <h1 className={`wc-title${titleShown && !plainTitle ? " is-entering" : ""}`}>
           {titleShown && (plainTitle
             ? <span>欢迎进入密码实验室</span>
             : (
@@ -1085,6 +1090,9 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
   text-shadow:
     0 0 26px rgba(56, 189, 248, 0.45),
     0 0 90px rgba(192, 132, 252, 0.2);
+}
+/* 字距收拢动画挂在标题实际挂载时（.is-entering），避免在空标题上空跑 */
+.wc-title.is-entering {
   animation: wc-title-track 1.4s ease-out both;
 }
 @keyframes wc-title-track {
@@ -1122,7 +1130,6 @@ export default function WelcomeScreen({ onDismiss, onReveal }: WelcomeScreenProp
   .wc-root.is-leaving {
     animation-duration: 0.3s;
   }
-  .wc-title { animation: none; }
   .wc-hint { color: rgba(255, 255, 255, 0.6); }
   .wc-progress { display: none; }
 }

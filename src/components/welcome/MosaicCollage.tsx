@@ -16,16 +16,15 @@ export default function MosaicCollage() {
   return (
     <div className="wc-collage" aria-hidden="true">
       {TILES.map((tile) => (
-        <img
+        <div
           key={tile.src}
           className="wc-tile"
           data-side={tile.side}
           data-order={tile.order}
           style={{ gridRow: tile.row, gridColumn: tile.col }}
-          src={tile.src}
-          alt=""
-          draggable={false}
-        />
+        >
+          <img className="wc-tile-img" src={tile.src} alt="" draggable={false} />
+        </div>
       ))}
       <div className="wc-core" style={{ gridRow: 2, gridColumn: 2 }}>
         <span className="wc-core-glyph">L</span>

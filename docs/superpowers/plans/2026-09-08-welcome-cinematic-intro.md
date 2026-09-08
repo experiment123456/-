@@ -37,7 +37,7 @@ import { chromium } from "playwright-core";
 import { browserLocation, screenshotDirectory } from "./browser-utils.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
-const output = screenshotDirectory("welcome-qa");
+const output = screenshotDirectory("lumora-welcome-qa");
 const server = spawn(process.execPath, ["server.mjs"], {
   cwd: root, env: { ...process.env, PORT: "0", LUMORA_USER_DATA: join(await mkdtemp(join(tmpdir(), "lumora-welcome-qa-")), "users.json") },
   stdio: ["ignore", "pipe", "pipe"], windowsHide: true,
@@ -93,8 +93,10 @@ try {
 
   // ---- 页面 A：分帧采样 + 拼贴图就绪 + 自动飞入 ----
   const cine = await pageAt();
-  results.overlayPresent = await cine.locator(".wc-root").isVisible();
+  await cine.locator(".wc-root").waitFor(); // 等 React 挂载，避免 isVisible 快照竞态
+  results.overlayPresent = true;
   results.overlayZIndex = await cine.locator(".wc-root").evaluate((el) => getComputedStyle(el).zIndex);
+  await cine.locator(".wc-canvas").waitFor(); // t0 对齐动画起点，首帧采样不再受冷启动影响
   const samples = [500, 2000, 5000, 7000, 9000, 10500];
   const t0 = Date.now();
   for (const at of samples) {
@@ -120,9 +122,11 @@ try {
   await skip.context().close();
 
   // ---- 页面 C：prefers-reduced-motion 海报式 ----
-  const reduced = await pageAt(async (context) => {}, { reducedMotion: "reduce" });
+  // 断言对象是 .wc-tile / .wc-core（海报路径 gsap.set 的目标），而非恒为 opacity 1 的 .wc-collage
+  const reduced = await pageAt(undefined, { reducedMotion: "reduce" });
   await reduced.waitForTimeout(800);
-  results.reducedMotionPoster = await reduced.locator(".wc-collage").evaluate((el) => getComputedStyle(el).opacity === "1");
+  results.reducedMotionPoster = await reduced.locator(".wc-tile").first().evaluate((el) => getComputedStyle(el).opacity === "1")
+    && await reduced.locator(".wc-core").evaluate((el) => getComputedStyle(el).opacity === "1");
   assert.equal(results.reducedMotionPoster, true, "reduced motion must show the poster collage immediately");
   await reduced.locator(".wc-root").waitFor({ state: "detached", timeout: 5000 });
   results.reducedMotionAutoEnters = true;
@@ -135,6 +139,10 @@ try {
   assert.equal(results.clickSkips, true, "click must skip into the app");
   assert.equal(results.reducedMotionAutoEnters, true, "reduced-motion poster must auto-enter");
   assert.deepEqual(pageErrors, []);
+} catch (error) {
+  // 失败时也要吐出已收集的结果与截图目录，便于排障
+  console.error(JSON.stringify({ results, pageErrors, artifacts: output }));
+  throw error;
 } finally {
   try { await browser?.close(); } finally { server.kill(); }
 }

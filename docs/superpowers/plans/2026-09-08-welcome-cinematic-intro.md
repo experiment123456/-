@@ -1175,7 +1175,7 @@ const [appRevealing, setAppRevealing] = useState(false);
 className={`app-scene relative h-[100svh] w-full overflow-hidden bg-black text-white ${settings.reducedMotion ? "motion-reduced" : ""} ${appRevealing ? "is-revealing" : ""}`}
 ```
 
-520 行附近，WelcomeScreen 传入 onReveal：
+WelcomeScreen 挂载点：**移到 `</section>`（#app-scene 闭合）之后**（fixed+z-60 仍覆盖全屏；否则飞入动画的 filter/transform 会波及覆盖层自身），并传入 onReveal：
 
 ```tsx
 {showWelcome && <WelcomeScreen onDismiss={() => setShowWelcome(false)} onReveal={() => setAppRevealing(true)} />}
@@ -1186,7 +1186,7 @@ className={`app-scene relative h-[100svh] w-full overflow-hidden bg-black text-w
 ```css
 /* ============ Welcome reveal：真实主页面迎面放大变清晰 ============ */
 .app-scene.is-revealing {
-  animation: app-fly-in 1.1s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  animation: app-fly-in 1.1s cubic-bezier(0.22, 0.61, 0.36, 1) backwards; /* backwards：结束后卸下 filter/transform，不留包含块 */
 }
 @keyframes app-fly-in {
   from { transform: scale(0.94); filter: blur(14px) brightness(1.2); }
@@ -1195,6 +1195,7 @@ className={`app-scene relative h-[100svh] w-full overflow-hidden bg-black text-w
 @media (prefers-reduced-motion: reduce) {
   .app-scene.is-revealing { animation: none; }
 }
+.app-scene.motion-reduced.is-revealing { animation: none; }
 ```
 
 - [ ] **Step 3: 类型检查**

@@ -667,16 +667,15 @@ export default function MosaicCollage() {
   return (
     <div className="wc-collage" aria-hidden="true">
       {TILES.map((tile) => (
-        <img
+        <div
           key={tile.src}
           className="wc-tile"
           data-side={tile.side}
           data-order={tile.order}
           style={{ gridRow: tile.row, gridColumn: tile.col }}
-          src={tile.src}
-          alt=""
-          draggable={false}
-        />
+        >
+          <img className="wc-tile-img" src={tile.src} alt="" draggable={false} />
+        </div>
       ))}
       <div className="wc-core" style={{ gridRow: 2, gridColumn: 2 }}>
         <span className="wc-core-glyph">L</span>
@@ -703,15 +702,23 @@ export default function MosaicCollage() {
   gap: clamp(6px, 1vmin, 12px);
   transform: translate(-50%, -50%);
 }
+/* .wc-tile 是包装 div（承载 is-flying 彗尾伪元素；img 是替换元素，伪元素不渲染） */
 .wc-tile {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  opacity: 0;
+  will-change: transform, opacity, filter;
+}
+.wc-tile-img {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-radius: 10px;
   border: 1px solid rgba(165, 243, 252, 0.35);
   box-shadow: 0 0 18px rgba(56, 189, 248, 0.25);
-  opacity: 0;
-  will-change: transform, opacity, filter;
 }
 /* 飞行中的彗尾：来向一侧拖出渐隐光带，青紫金交替（data-side 决定方向） */
 .wc-tile.is-flying::after {
@@ -722,7 +729,6 @@ export default function MosaicCollage() {
   width: 46vw;
   pointer-events: none;
 }
-.wc-tile { position: relative; }
 .wc-tile.is-flying[data-side="-1"]::after { right: 100%; background: linear-gradient(270deg, rgba(125, 211, 252, 0.4), rgba(192, 132, 252, 0.12) 55%, transparent); }
 .wc-tile.is-flying[data-side="1"]::after { left: 100%; background: linear-gradient(90deg, rgba(255, 202, 133, 0.34), rgba(125, 211, 252, 0.12) 55%, transparent); }
 .wc-core {

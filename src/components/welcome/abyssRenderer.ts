@@ -1,4 +1,4 @@
-import { INK, PHASES, clamp01, easeInCinematic, easeInOutCubic, segment } from "./palette";
+import { INK, PHASES, clamp01, easeInOutCubic, segment } from "./palette";
 
 type FogBlob = { nx: number; ny: number; scale: number; dir: -1 | 1; phase: number };
 type RainColumn = { x0: number; y0: number; z0: number; speed: number; color: string; glyphs: string[] };
@@ -140,6 +140,7 @@ export function createAbyssRenderer(canvas: HTMLCanvasElement): AbyssHandle {
 
   // ---- 弱机降载：<30fps 持续 2s 一次性降到 lite ----
   let slowMs = 0, lastTime = performance.now(), startedAt = lastTime, frame = 0;
+  let seekT = -1; // >=0 时把时间轴钉在指定秒（QA 逐帧取景用，不影响正常播放）
   const watchPerformance = (dtMs: number, elapsed: number) => {
     if (quality === "lite" || elapsed < 3) return;
     if (dtMs > 33) slowMs += dtMs; else slowMs = Math.max(0, slowMs - dtMs * 0.5);
@@ -150,7 +151,7 @@ export function createAbyssRenderer(canvas: HTMLCanvasElement): AbyssHandle {
     const dtMs = Math.min(now - lastTime, 50);
     const dt = dtMs / 1000;
     lastTime = now;
-    const t = (now - startedAt) / 1000;
+    const t = seekT >= 0 ? seekT : (now - startedAt) / 1000;
     watchPerformance(dtMs, t);
     const q = QUALITY[quality];
 
@@ -159,7 +160,7 @@ export function createAbyssRenderer(canvas: HTMLCanvasElement): AbyssHandle {
     const rainGain = segment(t, PHASES.awakenEnd, 2.3) * (1 - 0.82 * segment(t, PHASES.guardianEnd, PHASES.unfoldEnd))
       + 0.5 * segment(t, PHASES.decryptEnd, PHASES.decryptEnd + 0.8);
     const fogOut = segment(t, 1.6, 3.4);                            // 雾散进度
-    const jellyGrow = easeInCinematic(segment(t, PHASES.descentEnd, PHASES.guardianEnd));
+    const jellyGrow = easeInOutCubic(segment(t, PHASES.descentEnd, PHASES.guardianEnd - 0.3));
     const jellyLift = easeInOutCubic(segment(t, PHASES.guardianEnd, PHASES.guardianEnd + 0.9));
     const jellyFade = 1 - segment(t, 7.1, 7.9);
     const rayGain = segment(t, PHASES.awakenEnd, 2.5) * (1 - segment(t, 8, 9));
@@ -276,61 +277,174 @@ export function createAbyssRenderer(canvas: HTMLCanvasElement): AbyssHandle {
     });
 
     // 水母：guardian 推近放大，unfold 上移出画；光幕向两侧拉开
+    // 生物感要点：不对称脉动（收缩快舒张慢）、扇贝形伞缘、触须相位沿长度滞后（甩鞭感）
     if (jellyGrow > 0.001 && jellyFade > 0.001) {
-      const R = height * (0.055 + 0.40 * jellyGrow);
+      const R = height * (0.06 + 0.38 * jellyGrow);
+      const rawPulse = Math.sin(t * 3.4);
+      const contract = rawPulse >= 0 ? rawPulse ** 0.7 : -((-rawPulse) ** 1.4);
       const jx = cx + Math.sin(t * 0.5) * R * 0.06;
-      const jy = cy - jellyLift * height * 0.62 + Math.sin(t * 0.8) * R * 0.05;
+      const jy = cy - jellyLift * height * 0.62 + Math.sin(t * 0.8) * R * 0.05 - contract * R * 0.045;
       context.save();
       context.globalAlpha = jellyFade;
-      // 外圈生物辉光
-      const halo = context.createRadialGradient(jx, jy, R * 0.1, jx, jy, R * 1.7);
-      halo.addColorStop(0, `rgba(${INK.cyan}, ${0.28 * jellyFade})`);
-      halo.addColorStop(0.5, `rgba(${INK.violet}, ${0.12 * jellyFade})`);
+      // 整体慢速侧倾：打破"垂直悬停"的僵硬姿态
+      context.translate(jx, jy);
+      context.rotate(Math.sin(t * 0.45) * 0.05);
+      context.translate(-jx, -jy);
+      const bellW = R * (0.86 - 0.05 * contract);
+      const bellH = R * (0.68 + 0.08 * contract);
+      const marginY = jy + bellH * 0.5;
+      const rootY = marginY - bellH * 0.32; // 触须根埋进伞盖内侧，避免根部悬空
+      // 外圈生物辉光（收缩瞬间更亮）
+      const haloA = 0.26 + 0.1 * Math.max(0, contract);
+      const halo = context.createRadialGradient(jx, jy, R * 0.08, jx, jy, R * 1.75);
+      halo.addColorStop(0, `rgba(${INK.cyan}, ${haloA})`);
+      halo.addColorStop(0.5, `rgba(${INK.violet}, ${haloA * 0.45})`);
       halo.addColorStop(1, "rgba(0,0,0,0)");
       context.fillStyle = halo;
       context.fillRect(jx - R * 1.8, jy - R * 1.8, R * 3.6, R * 3.6);
-      // 触须（贝塞尔 S 摆）+ 尖端彩色光点
-      const bellBottom = jy + R * 0.34;
-      for (let k = 0; k < 7; k += 1) {
-        const rootX = jx + (k - 3) * R * 0.2;
-        const sway = Math.sin(t * 1.3 + k * 0.9) * R * 0.3;
-        const tipX = rootX + sway;
-        const tipY = bellBottom + R * (1.1 + 0.14 * Math.sin(t * 0.9 + k * 1.4));
-        const midX = (rootX + tipX) / 2 + sway * 0.7;
-        const midY = bellBottom + R * 0.55;
+      // 伞盖轮廓：宽顶 + 扇贝形伞缘（贝塞尔手绘，替代几何半椭圆）
+      const bellPath = () => {
+        const apexX = jx + Math.sin(t * 3.4 + 0.9) * bellW * 0.025; // 顶端随脉动轻晃（果冻感）
         context.beginPath();
-        context.moveTo(rootX, bellBottom);
-        context.quadraticCurveTo(midX, midY, tipX, tipY);
-        context.strokeStyle = `rgba(${INK.iceCyan}, ${0.5 * jellyFade})`;
-        context.lineWidth = 2.4;
+        context.moveTo(jx - bellW, marginY);
+        context.bezierCurveTo(jx - bellW * 1.05, jy - bellH * 0.32, jx - bellW * 0.58, jy - bellH, apexX, jy - bellH);
+        context.bezierCurveTo(jx + bellW * 0.58, jy - bellH, jx + bellW * 1.05, jy - bellH * 0.32, jx + bellW, marginY);
+        const scallops = 6;
+        const step = (bellW * 2) / scallops;
+        for (let i = 0; i < scallops; i += 1) {
+          const x1 = jx + bellW - step * (i + 0.5);
+          const x2 = jx + bellW - step * (i + 1);
+          const depthVar = 0.75 + 0.5 * Math.abs(Math.sin(i * 2.7 + 1.3)); // 扇贝深浅错落
+          const ripple = Math.sin(t * 3.4 - i * 0.7) * bellH * 0.055;
+          context.quadraticCurveTo(x1, marginY - bellH * (0.2 - 0.05 * contract) * depthVar + ripple, x2, marginY);
+        }
+      };
+      // 口腕：3 条半透明飘带（上宽下细收梢、尖端相位滞后，避免"胶囊管"观感）
+      for (let a = -1; a <= 1; a += 1) {
+        const rootX = jx + a * bellW * 0.2;
+        const armLen = R * (0.58 + 0.14 * (a + 1));
+        const swayRoot = Math.sin(t * 1.1 + a * 1.3) * R * 0.08;
+        const swayTip = Math.sin(t * 1.1 - 0.9 + a * 1.3) * R * 0.3;
+        const midX = rootX + swayRoot + (swayTip - swayRoot) * 0.4;
+        const midY = rootY + armLen * 0.45;
+        const tipX = rootX + swayTip;
+        const tipY = rootY + armLen;
+        context.lineCap = "round";
+        context.beginPath();
+        context.moveTo(rootX, rootY);
+        context.quadraticCurveTo(midX, midY, (midX + tipX) / 2, (midY + tipY) / 2);
+        context.strokeStyle = `rgba(${INK.violet}, 0.13)`;
+        context.lineWidth = R * 0.12;
         context.stroke();
         context.beginPath();
-        context.quadraticCurveTo(midX, midY, tipX, tipY);
-        context.strokeStyle = `rgba(${INK.cyan}, ${0.85 * jellyFade})`;
-        context.lineWidth = 1;
+        context.moveTo((midX + tipX) / 2, (midY + tipY) / 2);
+        context.quadraticCurveTo(tipX, tipY - armLen * 0.12, tipX, tipY);
+        context.strokeStyle = `rgba(${INK.violet}, 0.1)`;
+        context.lineWidth = R * 0.055;
         context.stroke();
+        context.beginPath();
+        context.moveTo(rootX, rootY);
+        context.quadraticCurveTo(midX, midY, tipX, tipY);
+        context.strokeStyle = `rgba(${INK.iceCyan}, 0.18)`;
+        context.lineWidth = R * 0.03;
+        context.stroke();
+      }
+      // 触须：11 条三段式 S 曲线，长短错落、各自倾漂 + 摆相沿长度滞后（甩鞭感）
+      const tendrils = 11;
+      for (let k = 0; k < tendrils; k += 1) {
+        const u = k / (tendrils - 1);
+        const jitter = Math.abs(Math.sin(k * 12.9898 + 4.1));
+        const rootX = jx + (u - 0.5) * bellW * 1.24;
+        const len = R * (0.72 + 0.46 * jitter + 0.22 * u);
+        const phaseK = k * 5.1; // 非共振相位步进，杜绝相邻触须同摆
+        const freqK = 1.15 + (k % 4) * 0.13;
+        const leanX = (u - 0.5) * R * 0.5 + Math.sin(k * 7.13 + 1.7) * R * 0.14; // 外倾裙摆 + 随机漂移
+        const segs = 3;
+        const joints: { x: number; y: number }[] = [];
+        for (let s = 0; s <= segs; s += 1) {
+          const f = s / segs;
+          const sway = Math.sin(t * freqK - f * 1.6 + phaseK) * R * (0.04 + 0.24 * f * f);
+          joints.push({ x: rootX + sway + leanX * f * f, y: rootY + len * f });
+        }
+        context.beginPath();
+        context.moveTo(joints[0].x, joints[0].y);
+        for (let s = 1; s < segs; s += 1) {
+          const mx = (joints[s].x + joints[s + 1].x) / 2;
+          const my = (joints[s].y + joints[s + 1].y) / 2;
+          context.quadraticCurveTo(joints[s].x, joints[s].y, mx, my);
+        }
+        context.lineTo(joints[segs].x, joints[segs].y);
+        context.lineCap = "round";
+        // 三档景深：近粗亮、远细淡，中间一档偏紫
+        const tier = k % 3;
+        const outerA = [0.26, 0.2, 0.14][tier];
+        const innerA = [0.66, 0.5, 0.36][tier];
+        context.strokeStyle = `rgba(${INK.cyan}, ${outerA})`;
+        context.lineWidth = Math.max(1.4, Math.min(3.8, R * [0.017, 0.013, 0.01][tier]));
+        context.stroke();
+        context.strokeStyle = tier === 1 ? `rgba(${INK.pinkViolet}, ${innerA})` : `rgba(${INK.iceCyan}, ${innerA})`;
+        context.lineWidth = Math.max(0.7, Math.min(1.5, R * [0.007, 0.006, 0.005][tier]));
+        context.stroke();
+        // 尖端彩色光点
+        const tip = joints[segs];
         const tipColor = k % 3 === 0 ? INK.gold : k % 3 === 1 ? INK.pinkViolet : INK.iceCyan;
         context.beginPath();
-        context.arc(tipX, tipY, 2.2, 0, Math.PI * 2);
-        context.fillStyle = `rgba(${tipColor}, ${0.9 * jellyFade})`;
-        context.shadowColor = `rgba(${tipColor}, 0.9)`;
-        context.shadowBlur = 9;
+        context.arc(tip.x, tip.y, Math.max(1.4, Math.min(2.4, R * 0.011)), 0, Math.PI * 2);
+        context.fillStyle = `rgba(${tipColor}, 0.88)`;
+        context.shadowColor = `rgba(${tipColor}, 0.85)`;
+        context.shadowBlur = quality === "lite" ? 0 : 8;
         context.fill();
         context.shadowBlur = 0;
       }
-      // 伞盖：青→紫渐变 + 搏动
-      const pulse = 1 + Math.sin(t * 2.2) * 0.06;
-      const bellW = R * 0.78, bellH = R * 0.52 * pulse;
-      const bell = context.createRadialGradient(jx, jy + bellH * 0.2, R * 0.05, jx, jy, bellW * 1.15);
-      bell.addColorStop(0, `rgba(${INK.white}, ${0.95 * jellyFade})`);
-      bell.addColorStop(0.42, `rgba(${INK.cyan}, ${0.75 * jellyFade})`);
-      bell.addColorStop(0.8, `rgba(${INK.violet}, ${0.5 * jellyFade})`);
+      // 伞盖三层：外膜渐变、伞缘内发光、内核（收缩时核心更亮）
+      const glow = 0.85 + 0.15 * Math.max(0, contract);
+      const bell = context.createRadialGradient(jx, jy - bellH * 0.34, R * 0.04, jx, jy - bellH * 0.1, bellW * 1.34);
+      bell.addColorStop(0, `rgba(${INK.white}, ${0.82 * glow})`);
+      bell.addColorStop(0.4, `rgba(${INK.cyan}, ${0.66 * glow})`);
+      bell.addColorStop(0.74, `rgba(${INK.violet}, 0.5)`);
+      bell.addColorStop(0.9, `rgba(${INK.violet}, 0.28)`);
       bell.addColorStop(1, "rgba(0,0,0,0)");
+      bellPath();
       context.fillStyle = bell;
-      context.beginPath();
-      context.ellipse(jx, jy, bellW, bellH, 0, Math.PI, 0);
-      context.closePath();
       context.fill();
+      // 伞缘内发光：点亮"内伞"，让触须根部从光里长出来
+      context.save();
+      bellPath();
+      context.clip();
+      const under = context.createRadialGradient(jx, marginY - bellH * 0.02, 0, jx, marginY - bellH * 0.02, bellW * 0.92);
+      under.addColorStop(0, `rgba(${INK.iceCyan}, ${0.28 + 0.12 * Math.max(0, contract)})`);
+      under.addColorStop(0.6, `rgba(${INK.violet}, 0.13)`);
+      under.addColorStop(1, "rgba(0,0,0,0)");
+      context.fillStyle = under;
+      context.fillRect(jx - bellW, marginY - bellH * 0.55, bellW * 2, bellH * 0.66);
+      context.restore();
+      const inner = context.createRadialGradient(jx, jy - bellH * 0.15, 0, jx, jy, bellW * 0.62);
+      inner.addColorStop(0, `rgba(${INK.white}, ${0.5 * glow})`);
+      inner.addColorStop(0.55, `rgba(${INK.iceCyan}, 0.22)`);
+      inner.addColorStop(1, "rgba(0,0,0,0)");
+      context.save();
+      bellPath();
+      context.clip();
+      context.fillStyle = inner;
+      context.fillRect(jx - bellW * 0.7, jy - bellH * 1.1, bellW * 1.4, bellH * 1.6);
+      context.restore();
+      // 伞缘高光描边
+      bellPath();
+      context.strokeStyle = `rgba(${INK.iceCyan}, 0.42)`;
+      context.lineWidth = 1.6;
+      context.shadowColor = `rgba(${INK.cyan}, 0.8)`;
+      context.shadowBlur = quality === "lite" ? 0 : 10;
+      context.stroke();
+      context.shadowBlur = 0;
+      // 放射水管：极淡的紫色辐纹（自伞盖中段发散，不在顶点汇聚）
+      context.strokeStyle = `rgba(${INK.violet}, 0.07)`;
+      context.lineWidth = 1.2;
+      for (let c = -2; c <= 2; c += 1) {
+        context.beginPath();
+        context.moveTo(jx, jy - bellH * 0.55);
+        context.quadraticCurveTo(jx + c * bellW * 0.3, jy - bellH * 0.3, jx + c * bellW * 0.42, marginY - bellH * 0.15);
+        context.stroke();
+      }
       context.restore();
       // 光幕：unfold 时两道柔光带自中央滑向两侧
       const curtainSeg = segment(t, PHASES.guardianEnd, 7.4);
@@ -397,11 +511,12 @@ export function createAbyssRenderer(canvas: HTMLCanvasElement): AbyssHandle {
     frame = requestAnimationFrame(loop);
   }
 
-  return {
+  const api = {
     destroy: () => {
       cancelAnimationFrame(frame);
       observer.disconnect();
       window.removeEventListener("pointermove", onPointerMove);
+      delete (window as unknown as { __lumoraSeek?: unknown }).__lumoraSeek;
     },
     freeze: () => {
       frozen = true;
@@ -410,5 +525,12 @@ export function createAbyssRenderer(canvas: HTMLCanvasElement): AbyssHandle {
       window.removeEventListener("pointermove", onPointerMove);
       drawFrame(performance.now());
     },
+    seek: (t: number) => {
+      seekT = t;
+      drawFrame(performance.now());
+    },
   };
+  // QA 逐帧取景钩子：脚本可把画面钉在任意时间轴秒数截图
+  (window as unknown as { __lumoraSeek?: (t: number) => void }).__lumoraSeek = api.seek;
+  return api;
 }

@@ -68,7 +68,7 @@ try {
   results.overlayPresent = true;
   results.overlayZIndex = await cine.locator(".wc-root").evaluate((el) => getComputedStyle(el).zIndex);
   await cine.locator(".wc-canvas").waitFor(); // t0 对齐动画起点，首帧采样不再受冷启动影响
-  const samples = [500, 2000, 5000, 7000, 9000, 10500];
+  const samples = [500, 2000, 5000, 6400, 7000, 9000, 10500]; // 6400ms 卡在守护者相位峰值（水母最大时）
   const t0 = Date.now();
   for (const at of samples) {
     await cine.waitForTimeout(Math.max(0, at - (Date.now() - t0)));

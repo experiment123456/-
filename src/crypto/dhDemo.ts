@@ -27,12 +27,26 @@ export interface MitmMessageResult {
 
 export interface SignatureDefenseResult {
   sessionId: string;
+  previousSessionId: string;
   aliceFingerprint: string;
   bobFingerprint: string;
   aliceSignature: string;
   bobSignature: string;
+  replaySignature: string;
+  alicePayload: string;
+  bobPayload: string;
+  attackedAlicePayload: string;
+  attackedBobPayload: string;
+  replayPayload: string;
+  aliceDigest: string;
+  bobDigest: string;
+  attackedAliceDigest: string;
+  attackedBobDigest: string;
+  replayDigest: string;
   genuineValid: boolean;
   attackedValid: boolean;
+  replaySignatureValid: boolean;
+  replayFresh: boolean;
 }
 
 interface SignedDhOffer {
@@ -48,7 +62,16 @@ interface SigningIdentity {
 }
 
 function offerBytes(offer: SignedDhOffer): Uint8Array {
-  return utf8(`LUMORA-DH-SIGNED-V1|${offer.sessionId}|${offer.role}|${offer.publicKey}`);
+  return utf8(offerText(offer));
+}
+
+function offerText(offer: SignedDhOffer): string {
+  return `LUMORA-DH-SIGNED-V1|${offer.sessionId}|${offer.role}|${offer.publicKey}`;
+}
+
+async function digestOffer(offer: SignedDhOffer): Promise<string> {
+  const digest = await requireWebCrypto().digest("SHA-256", toArrayBuffer(offerBytes(offer)));
+  return bytesToHex(new Uint8Array(digest));
 }
 
 function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
@@ -123,27 +146,63 @@ export async function simulateSignatureDefense(
   const nonce = new Uint8Array(8);
   crypto.getRandomValues(nonce);
   const sessionId = bytesToHex(nonce).toUpperCase();
+  const previousNonce = new Uint8Array(8);
+  crypto.getRandomValues(previousNonce);
+  const previousSessionId = bytesToHex(previousNonce).toUpperCase();
   const aliceOffer: SignedDhOffer = { sessionId, role: "Alice", publicKey: alice.publicKey };
   const bobOffer: SignedDhOffer = { sessionId, role: "Bob", publicKey: bob.publicKey };
+  const replayOffer: SignedDhOffer = { sessionId: previousSessionId, role: "Alice", publicKey: alice.publicKey };
   const [aliceSignature, bobSignature] = await Promise.all([
     signOffer(aliceIdentity.privateKey, aliceOffer),
     signOffer(bobIdentity.privateKey, bobOffer),
   ]);
+  const replaySignature = await signOffer(aliceIdentity.privateKey, replayOffer);
   const attackedAliceOffer: SignedDhOffer = { ...aliceOffer, publicKey: eve.publicKey };
   const attackedBobOffer: SignedDhOffer = { ...bobOffer, publicKey: eve.publicKey };
-  const [aliceGenuine, bobGenuine, aliceAttacked, bobAttacked] = await Promise.all([
+  const [
+    aliceGenuine,
+    bobGenuine,
+    aliceAttacked,
+    bobAttacked,
+    replaySignatureValid,
+    aliceDigest,
+    bobDigest,
+    attackedAliceDigest,
+    attackedBobDigest,
+    replayDigest,
+  ] = await Promise.all([
     verifyOffer(aliceIdentity.publicKey, aliceOffer, aliceSignature),
     verifyOffer(bobIdentity.publicKey, bobOffer, bobSignature),
     verifyOffer(aliceIdentity.publicKey, attackedAliceOffer, aliceSignature),
     verifyOffer(bobIdentity.publicKey, attackedBobOffer, bobSignature),
+    verifyOffer(aliceIdentity.publicKey, replayOffer, replaySignature),
+    digestOffer(aliceOffer),
+    digestOffer(bobOffer),
+    digestOffer(attackedAliceOffer),
+    digestOffer(attackedBobOffer),
+    digestOffer(replayOffer),
   ]);
   return {
     sessionId,
+    previousSessionId,
     aliceFingerprint: aliceIdentity.fingerprint,
     bobFingerprint: bobIdentity.fingerprint,
     aliceSignature,
     bobSignature,
+    replaySignature,
+    alicePayload: offerText(aliceOffer),
+    bobPayload: offerText(bobOffer),
+    attackedAlicePayload: offerText(attackedAliceOffer),
+    attackedBobPayload: offerText(attackedBobOffer),
+    replayPayload: offerText(replayOffer),
+    aliceDigest,
+    bobDigest,
+    attackedAliceDigest,
+    attackedBobDigest,
+    replayDigest,
     genuineValid: aliceGenuine && bobGenuine,
     attackedValid: aliceAttacked || bobAttacked,
+    replaySignatureValid,
+    replayFresh: previousSessionId === sessionId,
   };
 }
